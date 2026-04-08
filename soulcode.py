@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from collections import Counter
 import re
+import sqlite3
 
 class SoulEngine:
     
@@ -40,6 +41,8 @@ class SoulEngine:
         
         self.user_nickname = self.profile.get("user_nickname", "Soul Code")
         self.soul_nickname = self.profile.get("soul_nickname", "صديقي")
+        
+        self.init_database()
         
     def sanitize_email(self, email):
         return email.replace('@', '_at_').replace('.', '_dot_')
@@ -304,22 +307,11 @@ Talk as a real friend:
             "user_email": self.user_email
         }
     
-import sqlite3
-from datetime import datetime
-
-class SoulEngine:
-    def __init__(self, user_email):
-        # ... الكود الموجود ...
-        
-        # إضافة قاعدة بيانات للتعلم
-        self.init_database()
+    # ========== دوال التعلم والذاكرة ==========
     
     def init_database(self):
-        """إنشاء قاعدة بيانات التعلم"""
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
         c = conn.cursor()
-        
-        # جدول للمحادثات
         c.execute('''CREATE TABLE IF NOT EXISTS conversations
                      (id INTEGER PRIMARY KEY,
                       user_message TEXT,
@@ -327,20 +319,16 @@ class SoulEngine:
                       timestamp TEXT,
                       topic TEXT,
                       sentiment TEXT)''')
-        
-        # جدول للمعلومات المستفادة
         c.execute('''CREATE TABLE IF NOT EXISTS learnings
                      (id INTEGER PRIMARY KEY,
                       fact TEXT,
                       source TEXT,
                       confidence REAL,
                       timestamp TEXT)''')
-        
         conn.commit()
         conn.close()
     
     def save_conversation(self, user_msg, ai_msg, topic, sentiment):
-        """حفظ المحادثة وتحليلها"""
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
         c = conn.cursor()
         c.execute('''INSERT INTO conversations 
@@ -351,7 +339,6 @@ class SoulEngine:
         conn.close()
     
     def learn_fact(self, fact, source="conversation"):
-        """تعلم حقيقة جديدة عن المستخدم"""
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
         c = conn.cursor()
         c.execute('''INSERT INTO learnings (fact, source, confidence, timestamp)
@@ -361,7 +348,6 @@ class SoulEngine:
         conn.close()
     
     def get_all_learnings(self):
-        """استرجاع كل ما تعلمه عن المستخدم"""
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
         c = conn.cursor()
         c.execute('SELECT fact FROM learnings ORDER BY confidence DESC')
@@ -370,7 +356,6 @@ class SoulEngine:
         return [f[0] for f in facts]
     
     def get_conversation_history(self, limit=50):
-        """استرجاع آخر المحادثات"""
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
         c = conn.cursor()
         c.execute('SELECT user_message, ai_response FROM conversations ORDER BY id DESC LIMIT ?', (limit,))
@@ -378,57 +363,48 @@ class SoulEngine:
         conn.close()
         return history
     
-
-import re
-
-def analyze_message(self, message):
-    """تحليل الرسالة لاستخراج المعلومات"""
-    analysis = {
-        "topic": "general",
-        "sentiment": "neutral",
-        "facts": [],
-        "questions": []
-    }
-    
-    # كشف المواضيع
-    topics = {
-        "study": ["دراسة", "جامعة", "كلية", "علم", "تعلم", "مادة", "امتحان"],
-        "career": ["وظيفة", "شغل", "مهنة", "عمل", "شركة", "مهندس"],
-        "health": ["صحة", "تعب", "مرض", "دواء", "دكتور", "مستشفى"],
-        "feelings": ["سعيد", "حزين", "زعلان", "فرحان", "مبسوط", "متضايق"],
-        "dreams": ["حلم", "طموح", "مستقبل", "أمنية", "هدف"],
-        "ai": ["ذكاء اصطناعي", "بيانات", "برمجة", "خوارزم", "تعلم آلة"]
-    }
-    
-    for topic, keywords in topics.items():
-        if any(k in message.lower() for k in keywords):
-            analysis["topic"] = topic
-            break
-    
-    # تحليل المشاعر (متقدم)
-    positive = ["سعيد", "فرحان", "مبسوط", "رائع", "جميل", "حلو", "ممتاز"]
-    negative = ["حزين", "زعلان", "تعبان", "متضايق", "صعب", "تعب", "ضيق"]
-    
-    pos_count = sum(1 for w in positive if w in message.lower())
-    neg_count = sum(1 for w in negative if w in message.lower())
-    
-    if pos_count > neg_count:
-        analysis["sentiment"] = "positive"
-    elif neg_count > pos_count:
-        analysis["sentiment"] = "negative"
-    
-    # استخراج معلومات (أسم، عمر، هواية)
-    name_match = re.search(r'اسمي (\w+)', message)
-    if name_match:
-        analysis["facts"].append(f"الاسم: {name_match.group(1)}")
-    
-    age_match = re.search(r'عمري (\d+)', message)
-    if age_match:
-        analysis["facts"].append(f"العمر: {age_match.group(1)}")
-    
-    # كشف الأسئلة
-    if "?" in message or "؟" in message or "شو" in message or "كيف" in message:
-        analysis["questions"].append(message)
-    
-    return analysis
-
+    def analyze_message(self, message):
+        analysis = {
+            "topic": "general",
+            "sentiment": "neutral",
+            "facts": [],
+            "questions": []
+        }
+        
+        topics = {
+            "study": ["دراسة", "جامعة", "كلية", "علم", "تعلم", "مادة", "امتحان"],
+            "career": ["وظيفة", "شغل", "مهنة", "عمل", "شركة", "مهندس"],
+            "health": ["صحة", "تعب", "مرض", "دواء", "دكتور", "مستشفى"],
+            "feelings": ["سعيد", "حزين", "زعلان", "فرحان", "مبسوط", "متضايق"],
+            "dreams": ["حلم", "طموح", "مستقبل", "أمنية", "هدف"],
+            "ai": ["ذكاء اصطناعي", "بيانات", "برمجة", "خوارزم", "تعلم آلة"]
+        }
+        
+        for topic, keywords in topics.items():
+            if any(k in message.lower() for k in keywords):
+                analysis["topic"] = topic
+                break
+        
+        positive = ["سعيد", "فرحان", "مبسوط", "رائع", "جميل", "حلو", "ممتاز"]
+        negative = ["حزين", "زعلان", "تعبان", "متضايق", "صعب", "تعب", "ضيق"]
+        
+        pos_count = sum(1 for w in positive if w in message.lower())
+        neg_count = sum(1 for w in negative if w in message.lower())
+        
+        if pos_count > neg_count:
+            analysis["sentiment"] = "positive"
+        elif neg_count > pos_count:
+            analysis["sentiment"] = "negative"
+        
+        name_match = re.search(r'اسمي (\w+)', message)
+        if name_match:
+            analysis["facts"].append(f"الاسم: {name_match.group(1)}")
+        
+        age_match = re.search(r'عمري (\d+)', message)
+        if age_match:
+            analysis["facts"].append(f"العمر: {age_match.group(1)}")
+        
+        if "?" in message or "؟" in message or "شو" in message or "كيف" in message:
+            analysis["questions"].append(message)
+        
+        return analysis
