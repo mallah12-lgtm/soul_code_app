@@ -152,3 +152,48 @@ else:
                 st.session_state.soul.learn_from_conversation(user_input, ai_response)
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
                 st.rerun()
+
+
+def get_smart_response(user_message, soul):
+    # تحليل الرسالة
+    analysis = soul.analyze_message(user_message)
+    
+    # حفظ المحادثة للتعلم
+    soul.save_conversation(user_message, "", analysis["topic"], analysis["sentiment"])
+    
+    # تعلم الحقائق الجديدة
+    for fact in analysis["facts"]:
+        soul.learn_fact(fact)
+    
+    # بناء رد يعتمد على التحليل
+    if analysis["topic"] == "ai":
+        return f"أنا سعيد لأنك مهتمة بالذكاء الاصطناعي {soul.soul_nickname}! 🎓 أنا أيضاً أتعلم منك كل يوم. تقدرين تسأليني أي شيء عن المجال."
+    
+    elif analysis["topic"] == "feelings":
+        if analysis["sentiment"] == "positive":
+            return f"فرحتني فرحتك {soul.soul_nickname}! 🎉 أخبريني أكثر عن سبب سعادتك."
+        else:
+            return f"أنا هنا معك {soul.soul_nickname} 🫂 تفضلي اشرحيلي اللي في خاطرك."
+    
+    elif analysis["topic"] == "dreams":
+        return f"أحلامك جميلة {soul.soul_nickname}! ✨ أنا واثق إنك بتقدرين تحققينها. وش أول خطوة تبغين تسويها؟"
+    
+    elif analysis["questions"]:
+        return f"سؤال جميل {soul.soul_nickname}! 🤔 دعيني أفكر معاك/معاكي... أنا متعلم من محادثاتنا السابقة، وبرأيي المتواضع..."
+    
+    else:
+        # رد عام مع تذكير بذاكرته
+        learnings = soul.get_all_learnings()
+        if learnings:
+            return f"أنا أتذكر أنك قلت لي: {learnings[-1]}... أتمنى أكون فاهماً صح {soul.soul_nickname}! 💙"
+        else:
+            return f"أنا هنا أتعلم منك كل يوم {soul.soul_nickname}! 💙 علميني أكثر عن نفسك وأهتماماتك."
+        
+# إضافة زر "تعليم" بعد كل رد
+with st.form("feedback_form"):
+    feedback = st.text_input("علمني: كيف أرد أفضل في المرة القادمة؟", placeholder="مثلاً: رد بطريقة أقصر...")
+    if st.form_submit_button("📚 علمني"):
+        soul.learn_fact(f"المستخدم يفضل: {feedback}", source="feedback")
+        st.success("شكراً لك! سأتذكر هذا 🧠💙")
+
+
