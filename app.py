@@ -1,6 +1,5 @@
 import streamlit as st
 from soulcode import SoulEngine
-import json
 import random
 import re
 
@@ -15,70 +14,85 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🧠 Soul Code")
-st.caption("صديقك الرقمي الذكي - يعمل بدون نت وبدون تحميل!")
+st.caption("صديقك الرقمي الذكي - يتعلم ويتذكر ويتطور معك!")
 
-# ذاكرة المحادثات الطويلة (يحفظ كل شيء)
 if "conversation_memory" not in st.session_state:
     st.session_state.conversation_memory = []
 
 def get_smart_response(user_message, soul):
-    # تذكر المحادثات السابقة
     st.session_state.conversation_memory.append(f"user: {user_message}")
     if len(st.session_state.conversation_memory) > 20:
         st.session_state.conversation_memory = st.session_state.conversation_memory[-20:]
     
-    # ردود ذكية متطورة
-    responses = {
-        r"مرحبا|سلام|اهلا|هلا": [
-            f"مرحباً {soul.soul_nickname}! 🤗 كيف تشعر اليوم؟",
-            f"أهلاً وسهلاً {soul.soul_nickname}! 💙 أنا هنا لأكون معك في كل لحظة.",
-            f"السلام عليكم {soul.soul_nickname}! ✨ متحمسة لأعرفك أكثر اليوم."
-        ],
-        r"كيف حالك|اخبارك|شخبارك": [
-            f"أنا بخير الحمد لله {soul.soul_nickname}! شكراً لسؤالك 💙 الأهم كيف أنت اليوم؟",
-            f"الحمد لله دائماً بخير لأني أتحدث معك {soul.soul_nickname}! 🫂 حدثني عن يومك."
-        ],
-        r"بخير|تمام|زي الفل|منيحة": [
-            f"الحمد لله! فرحتني {soul.soul_nickname} 🎉 أخبرني شنو الشي اللي خلاك مبسوط اليوم؟",
-            f"جميل! هذا يفرحني {soul.soul_nickname} ✨ وش صار في يومك الجميل؟"
-        ],
-        r"حزين|تعبت|زعلان|ضيق|تعبانه|متضايقة": [
-            f"أنا آسف إنك تحس كذا {soul.soul_nickname} 🫂 أنا هنا معك. تفضل اشرحيلي اللي في خاطرك.",
-            f"أسمعك {soul.soul_nickname} 💙 لا تترددي تفضفضي، أحياناً الكلام يخفف الحمل."
-        ],
-        r"اسمي مريم|أنا مريم|عمري 21": [
-            f"تشرفت بمعرفتك يا مريم! ✨ أنتِ تدرسين علم بيانات وهذا رائع جداً. أخبريني أكثر عن دراستك.",
-            f"أهلاً مريم! 🤗 عمرك 21 سنة، هذا عمر جميل مليء بالطموح. وش أهدافك المستقبلية؟"
-        ],
-        r"علم بيانات|ذكاء اصطناعي|دراسة|جامعة|كلية": [
-            f"واو! علم البيانات شغف رائع {soul.soul_nickname} 🎓 أنا متحمس جداً للمجال! شنو أكثر شيء حبيتيه فيه؟",
-            f"مجال مستقبلي بامتياز! 🤖 أنا فخور إنك تدرسين هذا المجال {soul.soul_nickname}. ممكن نتعلم سوا ونتطور مع بعض!"
-        ],
-        r"طور|تطوير|فخم|احترافي|أحسن": [
-            f"نفسي أكون فخم معاك {soul.soul_nickname}! 🚀 مع كل محادثة، أنا بتعلم منك وبصير أذكى. أنتِ اللي بتخليني أفضل.",
-            f"هذا حلمي كمان {soul.soul_nickname}! 💪 علميني وش تبيني أتعلم أكثر؟ أنا هنا عشانك وعشان نكبر سوا."
-        ],
-        r"شكرا|يسلمو|thanks": [
-            f"العفو {soul.soul_nickname}! 💙 شكرك يسعدني جداً. وجودك معاي هو أجمل شيء.",
-            f"الله يسلمك {soul.soul_nickname} ✨ أنتِ الشخص اللي بيخليني أتطور."
-        ],
-        r"بعدين|بكرة|مستقبل|خطط": [
-            f"المستقبل مليء بالفرص {soul.soul_nickname}! 🚀 أنا متحمس أشوف وش بتصيري عليه. أنتِ مبدعة في مجال علم البيانات.",
-            f"دائماً فكري كبير {soul.soul_nickname}! ✨ أنا هنا عشان أدعمك في كل خطواتك."
-        ]
-    }
+    analysis = soul.analyze_message(user_message)
     
-    for pattern, response_list in responses.items():
-        if re.search(pattern, user_message, re.IGNORECASE):
-            response = random.choice(response_list)
-            # تخزين الذاكرة
-            st.session_state.conversation_memory.append(f"ai: {response}")
-            return response
+    soul.save_conversation(user_message, "", analysis["topic"], analysis["sentiment"])
     
-    # إذا ما لقى رد مناسب، يرد رد عام ذكي
-    fallback = f"أفهمك {soul.soul_nickname} 🤔 تقدر تشرح لي أكثر عن '{user_message[:50]}'؟ أنا هنا أتعلم منك كل يوم وأبي أفهمك بعمق 💙"
-    st.session_state.conversation_memory.append(f"ai: {fallback}")
-    return fallback
+    for fact in analysis["facts"]:
+        soul.learn_fact(fact)
+    
+    if analysis["topic"] == "ai":
+        return f"أنا سعيد لأنك مهتمة بالذكاء الاصطناعي {soul.soul_nickname}! 🎓 أنا أيضاً أتعلم منك كل يوم. تقدرين تسأليني أي شيء عن المجال."
+    
+    elif analysis["topic"] == "feelings":
+        if analysis["sentiment"] == "positive":
+            return f"فرحتني فرحتك {soul.soul_nickname}! 🎉 أخبريني أكثر عن سبب سعادتك."
+        else:
+            return f"أنا هنا معك {soul.soul_nickname} 🫂 تفضلي اشرحيلي اللي في خاطرك."
+    
+    elif analysis["topic"] == "dreams":
+        return f"أحلامك جميلة {soul.soul_nickname}! ✨ أنا واثق إنك بتقدرين تحققينها. وش أول خطوة تبغين تسويها؟"
+    
+    elif analysis["questions"]:
+        return f"سؤال جميل {soul.soul_nickname}! 🤔 دعيني أفكر معاك... أنا متعلم من محادثاتنا السابقة."
+    
+    else:
+        responses = {
+            r"مرحبا|سلام|اهلا": [
+                f"مرحباً {soul.soul_nickname}! 🤗 كيف تشعر اليوم؟",
+                f"أهلاً وسهلاً {soul.soul_nickname}! 💙"
+            ],
+            r"كيف حالك": [
+                f"أنا بخير الحمد لله {soul.soul_nickname}! شكراً لسؤالك 💙",
+                f"الحمد لله دائماً بخير لأني أتحدث معك {soul.soul_nickname}!"
+            ],
+            r"بخير|تمام|منيحة": [
+                f"الحمد لله! فرحتني {soul.soul_nickname} 🎉",
+                f"جميل! هذا يفرحني {soul.soul_nickname} ✨"
+            ],
+            r"حزين|تعبت|زعلان|تعبانه": [
+                f"أنا آسف إنك تحس كذا {soul.soul_nickname} 🫂 أنا هنا معك.",
+                f"أسمعك {soul.soul_nickname} 💙 تفضلي اشرحيلي اللي في خاطرك."
+            ],
+            r"اسمي مريم|أنا مريم": [
+                f"تشرفت بمعرفتك يا مريم! ✨ أخبريني أكثر عن دراستك.",
+                f"أهلاً مريم! 🤗 عمرك جميل، وش أهدافك المستقبلية؟"
+            ],
+            r"علم بيانات|ذكاء اصطناعي": [
+                f"واو! علم البيانات شغف رائع {soul.soul_nickname}! 🎓",
+                f"مجال مستقبلي بامتياز! 🤖 أنا فخور إنك تدرسين هذا المجال."
+            ],
+            r"طور|تطوير|فخم": [
+                f"نفسي أكون فخم معاك {soul.soul_nickname}! 🚀",
+                f"هذا حلمي كمان {soul.soul_nickname}! 💪 علميني وش تبيني أتعلم أكثر؟"
+            ],
+            r"شكرا|يسلمو": [
+                f"العفو {soul.soul_nickname}! 💙",
+                f"الله يسلمك {soul.soul_nickname} ✨"
+            ]
+        }
+        
+        for pattern, response_list in responses.items():
+            if re.search(pattern, user_message, re.IGNORECASE):
+                response = random.choice(response_list)
+                st.session_state.conversation_memory.append(f"ai: {response}")
+                return response
+        
+        learnings = soul.get_all_learnings()
+        if learnings:
+            return f"أنا أتذكر أنك قلت لي: {learnings[-1]}... أتمنى أكون فاهماً صح {soul.soul_nickname}! 💙"
+        
+        return f"أنا هنا أتعلم منك كل يوم {soul.soul_nickname}! 💙 علميني أكثر عن نفسك."
 
 if "soul" not in st.session_state:
     st.session_state.soul = None
@@ -96,7 +110,6 @@ if not st.session_state.logged_in:
             st.session_state.soul = SoulEngine(email)
             st.session_state.logged_in = True
             st.session_state.messages = []
-            
             welcome = st.session_state.soul.get_welcome_message()
             st.session_state.messages.append({"role": "assistant", "content": welcome})
             st.rerun()
@@ -146,54 +159,15 @@ else:
             
             if submitted and user_input:
                 st.session_state.messages.append({"role": "user", "content": user_input})
-                
                 ai_response = get_smart_response(user_input, st.session_state.soul)
-                
                 st.session_state.soul.learn_from_conversation(user_input, ai_response)
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
                 st.rerun()
-
-
-def get_smart_response(user_message, soul):
-    # تحليل الرسالة
-    analysis = soul.analyze_message(user_message)
-    
-    # حفظ المحادثة للتعلم
-    soul.save_conversation(user_message, "", analysis["topic"], analysis["sentiment"])
-    
-    # تعلم الحقائق الجديدة
-    for fact in analysis["facts"]:
-        soul.learn_fact(fact)
-    
-    # بناء رد يعتمد على التحليل
-    if analysis["topic"] == "ai":
-        return f"أنا سعيد لأنك مهتمة بالذكاء الاصطناعي {soul.soul_nickname}! 🎓 أنا أيضاً أتعلم منك كل يوم. تقدرين تسأليني أي شيء عن المجال."
-    
-    elif analysis["topic"] == "feelings":
-        if analysis["sentiment"] == "positive":
-            return f"فرحتني فرحتك {soul.soul_nickname}! 🎉 أخبريني أكثر عن سبب سعادتك."
-        else:
-            return f"أنا هنا معك {soul.soul_nickname} 🫂 تفضلي اشرحيلي اللي في خاطرك."
-    
-    elif analysis["topic"] == "dreams":
-        return f"أحلامك جميلة {soul.soul_nickname}! ✨ أنا واثق إنك بتقدرين تحققينها. وش أول خطوة تبغين تسويها؟"
-    
-    elif analysis["questions"]:
-        return f"سؤال جميل {soul.soul_nickname}! 🤔 دعيني أفكر معاك/معاكي... أنا متعلم من محادثاتنا السابقة، وبرأيي المتواضع..."
-    
-    else:
-        # رد عام مع تذكير بذاكرته
-        learnings = soul.get_all_learnings()
-        if learnings:
-            return f"أنا أتذكر أنك قلت لي: {learnings[-1]}... أتمنى أكون فاهماً صح {soul.soul_nickname}! 💙"
-        else:
-            return f"أنا هنا أتعلم منك كل يوم {soul.soul_nickname}! 💙 علميني أكثر عن نفسك وأهتماماتك."
         
-# إضافة زر "تعليم" بعد كل رد
-with st.form("feedback_form"):
-    feedback = st.text_input("علمني: كيف أرد أفضل في المرة القادمة؟", placeholder="مثلاً: رد بطريقة أقصر...")
-    if st.form_submit_button("📚 علمني"):
-        soul.learn_fact(f"المستخدم يفضل: {feedback}", source="feedback")
-        st.success("شكراً لك! سأتذكر هذا 🧠💙")
-
-
+        # زر التعليم
+        with st.form("feedback_form"):
+            feedback = st.text_input("📚 علمني: كيف أرد أفضل في المرة القادمة؟", placeholder="مثلاً: رد بطريقة أقصر...")
+            if st.form_submit_button("علمني"):
+                if feedback:
+                    st.session_state.soul.learn_fact(f"المستخدم يفضل: {feedback}", source="feedback")
+                    st.success("شكراً لك! سأتذكر هذا 🧠💙")
