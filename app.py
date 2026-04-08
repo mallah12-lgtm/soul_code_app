@@ -2,14 +2,75 @@ import streamlit as st
 from soulcode import SoulEngine
 import random
 import re
+from datetime import datetime
 
 st.set_page_config(page_title="Soul Code", page_icon="🧠", layout="wide")
 
+# CSS متطور مع تأثيرات
 st.markdown("""
 <style>
-.chat-message { padding: 1rem; border-radius: 1rem; margin: 0.5rem 0; }
-.user-message { background-color: #e3f2fd; text-align: right; }
-.ai-message { background-color: #f5f5f5; text-align: left; border-right: 4px solid #764ba2; }
+    /* خلفية متدرجة */
+    .stApp {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: all 0.5s ease;
+    }
+    
+    /* أنيميشن للرسائل */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .chat-message {
+        animation: fadeIn 0.3s ease-out;
+        padding: 1rem;
+        border-radius: 1rem;
+        margin: 0.5rem 0;
+    }
+    .user-message {
+        background-color: #e3f2fd;
+        text-align: right;
+    }
+    .ai-message {
+        background-color: #f5f5f5;
+        text-align: left;
+        border-right: 4px solid #764ba2;
+    }
+    
+    /* تأثيرات الأزرار */
+    .stButton>button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0.5rem 1.5rem;
+        transition: transform 0.2s;
+        width: 100%;
+    }
+    .stButton>button:hover {
+        transform: scale(1.02);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    
+    /* شريط التمرير */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+    }
+    
+    /* تنسيق الحاويات */
+    .settings-box {
+        background: rgba(255,255,255,0.95);
+        border-radius: 15px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -24,6 +85,12 @@ def get_smart_response(user_message, soul):
     if len(st.session_state.conversation_memory) > 20:
         st.session_state.conversation_memory = st.session_state.conversation_memory[-20:]
     
+    # التحقق من السياق أولاً (ذاكرة سياقية)
+    contextual_response = soul.get_contextual_response(user_message)
+    if contextual_response:
+        st.session_state.conversation_memory.append(f"ai: {contextual_response}")
+        return contextual_response
+    
     analysis = soul.analyze_message(user_message)
     
     soul.save_conversation(user_message, "", analysis["topic"], analysis["sentiment"])
@@ -31,6 +98,7 @@ def get_smart_response(user_message, soul):
     for fact in analysis["facts"]:
         soul.learn_fact(fact)
     
+    # ردود حسب التحليل المتقدم
     if analysis["topic"] == "ai":
         return f"أنا سعيد لأنك مهتمة بالذكاء الاصطناعي {soul.soul_nickname}! 🎓 أنا أيضاً أتعلم منك كل يوم. تقدرين تسأليني أي شيء عن المجال."
     
@@ -117,45 +185,100 @@ else:
     col1, col2 = st.columns([3, 1])
     
     with col2:
+        st.markdown('<div class="settings-box">', unsafe_allow_html=True)
         st.subheader("⚙️ الإعدادات")
         
-        new_user_nickname = st.text_input("اللقب الذي تريد أن يناديك به البرنامج", 
+        new_user_nickname = st.text_input("🏷️ اللقب الذي تريد أن يناديك به البرنامج", 
                                          value=st.session_state.soul.soul_nickname)
-        if st.button("تغيير لقبي"):
+        if st.button("💫 تغيير لقبي"):
             st.session_state.soul.set_soul_nickname(new_user_nickname)
-            st.success(f"تم! سأناديك {new_user_nickname} من الآن")
+            st.success(f"✅ تم! سأناديك {new_user_nickname} من الآن")
         
-        new_soul_nickname = st.text_input("اللقب الذي تريد مناداة البرنامج به",
+        new_soul_nickname = st.text_input("🤖 اللقب الذي تريد مناداة البرنامج به",
                                          value=st.session_state.soul.user_nickname)
-        if st.button("تغيير لقب البرنامج"):
+        if st.button("🔄 تغيير لقب البرنامج"):
             st.session_state.soul.set_user_nickname(new_soul_nickname)
-            st.success(f"تم! يمكنك مناداتي {new_soul_nickname} من الآن")
+            st.success(f"✅ تم! يمكنك مناداتي {new_soul_nickname} من الآن")
         
         st.divider()
-        summary = st.session_state.soul.get_user_summary()
-        st.metric("عدد المحادثات", summary["total_conversations"])
-        st.metric("عدد الاهتمامات", summary["interests_count"])
-        st.write(f"**بريدك:** {summary['user_email']}")
         
+        # ========== الإحصائيات ==========
+        st.subheader("📊 إحصائيات")
+        summary = st.session_state.soul.get_user_summary()
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("💬 المحادثات", summary["total_conversations"])
+        with col_b:
+            st.metric("❤️ الاهتمامات", summary["interests_count"])
+        
+        st.caption(f"📧 {summary['user_email']}")
+        
+        # ========== تحليل الشخصية ==========
+        st.divider()
+        st.subheader("🧠 رؤى شخصيتك")
+        
+        # اقتراح مخصص
+        if st.button("🌟 اقتراح مخصص"):
+            suggestion = st.session_state.soul.get_personalized_suggestion()
+            st.info(suggestion)
+        
+        # المشاعر المسيطرة
+        if summary.get("dominant_emotion") and summary["dominant_emotion"] != "neutral":
+            emotion_icon = "😊" if summary["dominant_emotion"] == "positive" else "🫂"
+            st.write(f"**مشاعرك الغالبة:** {emotion_icon} {summary['dominant_emotion']}")
+        
+        # مجالات التطوير
+        if summary.get("growth_areas"):
+            st.write("**📈 مجالات تطويرك:**")
+            for area in summary["growth_areas"][:3]:
+                st.caption(f"• {area[:40]}...")
+        
+        # ========== التذكيرات ==========
+        st.divider()
+        st.subheader("⏰ التذكيرات")
+        
+        with st.form("reminder_form"):
+            reminder_text = st.text_input("📝 ذكرني بـ:", placeholder="مذاكرة مادة الذكاء الاصطناعي")
+            reminder_date = st.date_input("📅 التاريخ", value=datetime.now())
+            if st.form_submit_button("➕ إضافة تذكير"):
+                if reminder_text:
+                    st.session_state.soul.add_reminder(reminder_text, reminder_date.isoformat())
+                    st.success(f"✅ تم حفظ التذكير: {reminder_text}")
+        
+        # عرض التذكيرات النشطة
+        reminders = st.session_state.soul.get_active_reminders()
+        if reminders:
+            st.write("📌 **تذكيراتك النشطة:**")
+            for r in reminders[:3]:
+                st.caption(f"• {r[0]} - 🗓️ {r[1][:10]}")
+        
+        # ========== رؤى أسبوعية ==========
+        st.divider()
         if st.button("🔮 رؤى أسبوعية"):
             st.info(st.session_state.soul.get_weekly_insights())
         
+        # ========== تسجيل خروج ==========
+        st.divider()
         if st.button("🚪 تسجيل خروج"):
             st.session_state.logged_in = False
             st.session_state.soul = None
             st.session_state.messages = []
             st.rerun()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col1:
+        # عرض المحادثة
         for msg in st.session_state.messages:
             if msg["role"] == "user":
                 st.markdown(f'<div class="chat-message user-message">👤 {msg["content"]}</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<div class="chat-message ai-message">🧠 {msg["content"]}</div>', unsafe_allow_html=True)
         
+        # حقل الإدخال
         with st.form("chat_form", clear_on_submit=True):
-            user_input = st.text_input("اكتب رسالتك:", placeholder="قولي أي شيء...")
-            submitted = st.form_submit_button("إرسال 💫")
+            user_input = st.text_input("اكتب رسالتك:", placeholder="قولي أي شيء...", label_visibility="collapsed")
+            submitted = st.form_submit_button("💫 إرسال", use_container_width=True)
             
             if submitted and user_input:
                 st.session_state.messages.append({"role": "user", "content": user_input})
@@ -167,7 +290,7 @@ else:
         # زر التعليم
         with st.form("feedback_form"):
             feedback = st.text_input("📚 علمني: كيف أرد أفضل في المرة القادمة؟", placeholder="مثلاً: رد بطريقة أقصر...")
-            if st.form_submit_button("علمني"):
+            if st.form_submit_button("📚 علمني", use_container_width=True):
                 if feedback:
-                    st.session_state.soul.learn_fact(f"المستخدم يفضل: {feedback}", source="feedback")
+                    st.session_state.soul.learn_fact(f"المستخدم يفضل: {feedback}", source="feedback", confidence=0.9)
                     st.success("شكراً لك! سأتذكر هذا 🧠💙")
