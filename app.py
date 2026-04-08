@@ -1,4 +1,4 @@
-# app.py - واجهة SoulCode المريحة للعين
+# app.py - واجهة SoulCode بتصميم Dashboard عصري (زي الصورة)
 import streamlit as st
 from soulcode import SoulEngine
 import random
@@ -7,401 +7,468 @@ from datetime import datetime
 
 st.set_page_config(page_title="Soul Code", page_icon="🧠", layout="wide")
 
-# ========== واجهة مريحة للعين (Dark Mode + ألوان هادئة) ==========
+# ========== CSS للتصميم العصري ==========
 st.markdown("""
 <style>
-    /* خلفية داكنة مريحة */
-    .stApp {
-        background: #0f0f13;
-    }
-    
-    /* تنسيق الحاوية الرئيسية */
+    /* إلغاء الهوامش الزائدة */
     .main > div {
-        max-width: 1400px;
-        margin: 0 auto;
+        padding: 0 !important;
+        max-width: 100% !important;
     }
     
-    /* أنيميشن ناعم للرسائل */
-    @keyframes gentleFade {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* خلفية الصفحة */
+    .stApp {
+        background: linear-gradient(135deg, #0a0a0f 0%, #0f0f1a 100%) !important;
     }
     
-    /* رسائل المستخدم */
-    .user-message {
-        background: linear-gradient(135deg, #1a2a3a 0%, #16212e 100%);
-        color: #d4e6f1;
+    /* ===== الشريط العلوي ===== */
+    .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background: rgba(18, 18, 30, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        margin-bottom: 24px;
+    }
+    .logo {
+        font-size: 24px;
+        font-weight: bold;
+        background: linear-gradient(135deg, #a855f7, #6366f1);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .logo-sub {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255,255,255,0.05);
+        padding: 8px 16px;
+        border-radius: 40px;
+    }
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #a855f7, #6366f1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    /* ===== شريط التنقل السفلي ===== */
+    .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(18, 18, 30, 0.95);
+        backdrop-filter: blur(10px);
+        display: flex;
+        justify-content: space-around;
+        padding: 12px 20px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        z-index: 100;
+    }
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        background: none;
+        border: none;
+        color: #6b7280;
+        font-size: 12px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .nav-item.active {
+        color: #a855f7;
+    }
+    .nav-icon {
+        font-size: 22px;
+    }
+    
+    /* ===== البطاقات ===== */
+    .welcome-card {
+        background: linear-gradient(135deg, #1e1e2e, #161622);
+        border-radius: 28px;
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .welcome-title {
+        font-size: 28px;
+        font-weight: bold;
+        color: #ffffff;
+        margin-bottom: 8px;
+    }
+    .welcome-sub {
+        color: #a855f7;
+        font-size: 14px;
+    }
+    
+    /* بطاقات الميزات */
+    .feature-card {
+        background: rgba(30, 30, 46, 0.6);
+        border-radius: 24px;
+        padding: 20px;
+        transition: all 0.2s;
+        border: 1px solid rgba(255,255,255,0.05);
+        margin-bottom: 16px;
+    }
+    .feature-card:hover {
+        background: rgba(40, 40, 56, 0.8);
+        transform: translateY(-2px);
+    }
+    .feature-icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+    }
+    .feature-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #ffffff;
+        margin-bottom: 8px;
+    }
+    .feature-desc {
+        font-size: 13px;
+        color: #9ca3af;
+        margin-bottom: 16px;
+    }
+    .feature-btn {
+        background: rgba(168, 85, 247, 0.15);
+        color: #a855f7;
+        border: none;
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    
+    /* ===== شاشة المحادثة ===== */
+    .chat-message-user {
+        background: linear-gradient(135deg, #2a2a3a, #222232);
+        color: #e0e0e8;
         padding: 12px 18px;
         border-radius: 20px;
-        border-bottom-right-radius: 4px;
         margin: 8px 0 8px auto;
         max-width: 75%;
-        float: right;
-        clear: both;
-        animation: gentleFade 0.3s ease;
-        font-size: 15px;
-        line-height: 1.5;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        text-align: right;
     }
-    
-    /* رسائل الذكاء الاصطناعي */
-    .ai-message {
-        background: linear-gradient(135deg, #1e2a2e 0%, #162024 100%);
+    .chat-message-ai {
+        background: linear-gradient(135deg, #1e2a2e, #162024);
         color: #c9e2e8;
         padding: 12px 18px;
         border-radius: 20px;
-        border-bottom-left-radius: 4px;
         margin: 8px auto 8px 0;
         max-width: 75%;
-        float: left;
-        clear: both;
-        animation: gentleFade 0.3s ease;
-        font-size: 15px;
-        line-height: 1.5;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        border-left: 3px solid #6c5ce7;
+        border-left: 3px solid #a855f7;
     }
     
-    /* حاوية الرسائل */
-    .chat-container {
-        min-height: 400px;
-        padding: 20px;
-        background: #0a0a0e;
-        border-radius: 24px;
-        margin-bottom: 20px;
-        overflow-y: auto;
-    }
+    /* إخفاء العناصر الافتراضية */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
     
-    /* إخفاء شريط التمرير الافتراضي لـ Streamlit */
-    .chat-container::-webkit-scrollbar {
-        width: 6px;
-    }
-    .chat-container::-webkit-scrollbar-track {
-        background: #1a1a1e;
-        border-radius: 10px;
-    }
-    .chat-container::-webkit-scrollbar-thumb {
-        background: #6c5ce7;
-        border-radius: 10px;
-    }
-    
-    /* تنسيق حقل الإدخال */
-    .stTextInput > div > div > input {
-        background: #1a1a20;
-        color: #e0e0e0;
-        border: 1px solid #2a2a35;
-        border-radius: 30px;
-        padding: 12px 20px;
-        font-size: 15px;
-    }
-    .stTextInput > div > div > input:focus {
-        border-color: #6c5ce7;
-        box-shadow: 0 0 0 2px rgba(108,92,231,0.2);
-    }
-    
-    /* تنسيق الأزرار */
-    .stButton > button {
-        background: linear-gradient(135deg, #6c5ce7 0%, #a463f5 100%);
-        color: white;
-        border: none;
-        border-radius: 30px;
-        padding: 10px 20px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(108,92,231,0.3);
-    }
-    
-    /* تنسيق الصناديق الجانبية */
-    .settings-box {
-        background: #121218;
-        border-radius: 24px;
-        padding: 20px;
-        border: 1px solid #23232e;
-        margin-bottom: 20px;
-    }
-    
-    /* تنسيق الـ Expander */
-    .streamlit-expanderHeader {
-        background: #1a1a22;
-        border-radius: 12px;
-        color: #d4d4dc;
-    }
-    
-    /* تنسيق الـ Metrics */
-    [data-testid="stMetric"] {
-        background: #1a1a22;
-        border-radius: 16px;
-        padding: 12px;
-    }
-    [data-testid="stMetric"] > div {
-        color: #d4d4dc;
-    }
-    
-    /* تنسيق النصوص العامة */
-    h1, h2, h3, .stMarkdown {
-        color: #e8e8f0;
-    }
-    
-    /* تنسيق الـ Info و Success */
-    .stAlert {
-        border-radius: 16px;
-        border: none;
-    }
-    .stAlert > div {
-        background: #1a1a22;
-        color: #c9e2e8;
-    }
-    
-    /* تنسيق التبويبات والأقسام */
-    hr {
-        border-color: #2a2a35;
-    }
-    
-    /* تنسيق اللوحة الجانبية */
-    [data-testid="stSidebar"] {
-        background: #0c0c10;
-        border-right: 1px solid #1e1e28;
-    }
-    [data-testid="stSidebar"] .stMarkdown {
-        color: #c0c0d0;
-    }
-    
-    /* العناوين الجانبية */
-    .sidebar-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 16px;
-        color: #a463f5;
-    }
-    
-    /* مؤشر الكتابة */
-    @keyframes pulse {
-        0%, 100% { opacity: 0.4; }
-        50% { opacity: 1; }
-    }
-    .typing-indicator {
-        display: inline-block;
-        padding: 8px 16px;
-        background: #1e2a2e;
-        border-radius: 20px;
-        font-size: 13px;
-        color: #6c5ce7;
-        animation: pulse 1.2s ease-in-out infinite;
-    }
-    
-    /* مسح التدفق العائم */
-    .clearfix::after {
-        content: "";
-        clear: both;
-        display: table;
+    /* تعديل المسافات */
+    .block-container {
+        padding: 0 !important;
+        padding-bottom: 80px !important;
     }
 </style>
-
-<div class="clearfix"></div>
 """, unsafe_allow_html=True)
 
-# العنوان
-st.title("🧠 Soul Code")
-st.caption("صديقك الرقمي الذي يفهمك - يتعلم ويتذكر ويتطور معك بهدوء")
+# ========== تهيئة حالة الجلسة ==========
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "home"
+if "soul" not in st.session_state:
+    st.session_state.soul = None
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-if "conversation_memory" not in st.session_state:
-    st.session_state.conversation_memory = []
-
+# ========== دالة الردود الذكية ==========
 def get_smart_response(user_message, soul):
-    st.session_state.conversation_memory.append(f"user: {user_message}")
-    if len(st.session_state.conversation_memory) > 20:
-        st.session_state.conversation_memory = st.session_state.conversation_memory[-20:]
-    
-    contextual_response = soul.get_contextual_response(user_message)
-    if contextual_response:
-        st.session_state.conversation_memory.append(f"ai: {contextual_response}")
-        return contextual_response
-    
     analysis = soul.analyze_message(user_message)
     soul.save_conversation(user_message, "", analysis["topic"], analysis["sentiment"])
     
-    for fact in analysis["facts"]:
-        soul.learn_fact(fact)
+    responses = {
+        r"مرحبا|سلام|اهلا": [f"مرحباً {soul.soul_nickname}! 🤗 كيف تشعر اليوم؟"],
+        r"كيف حالك": [f"أنا بخير {soul.soul_nickname}! شكراً لسؤالك 💙"],
+        r"بخير|تمام": [f"الحمد لله! فرحتني {soul.soul_nickname} 🎉"],
+        r"حزين|تعبت": [f"أنا آسف {soul.soul_nickname} 🫂 أنا هنا معك."],
+    }
     
-    if analysis["topic"] == "ai":
-        return f"أنا سعيد لأنك مهتمة بالذكاء الاصطناعي {soul.soul_nickname}! 🎓 أتعلم منك كل يوم. اسأليني أي شيء."
+    for pattern, response_list in responses.items():
+        if re.search(pattern, user_message, re.IGNORECASE):
+            return random.choice(response_list)
     
-    elif analysis["topic"] == "feelings":
-        if analysis["sentiment"] == "positive":
-            return f"فرحتني فرحتك {soul.soul_nickname}! 🎉 أخبريني أكثر عن سبب سعادتك."
-        else:
-            return f"أنا هنا معك {soul.soul_nickname} 🫂 تفضلي شاركيني اللي في خاطرك."
-    
-    elif analysis["topic"] == "dreams":
-        return f"أحلامك جميلة {soul.soul_nickname}! ✨ أنا واثق إنك بتقدرين تحققينها. وش أول خطوة؟"
-    
-    elif analysis["questions"]:
-        return f"سؤال جميل {soul.soul_nickname}! 🤔 دعيني أفكر معاك."
-    
-    else:
-        responses = {
-            r"مرحبا|سلام|اهلا": [
-                f"مرحباً {soul.soul_nickname}! 🤗 كيف تشعر اليوم؟",
-                f"أهلاً وسهلاً {soul.soul_nickname}! 💙"
-            ],
-            r"كيف حالك": [
-                f"أنا بخير {soul.soul_nickname}! شكراً لسؤالك 💙",
-                f"الحمد لله دائماً بخير لأني أتحدث معك {soul.soul_nickname}!"
-            ],
-            r"بخير|تمام|منيحة": [
-                f"الحمد لله! فرحتني {soul.soul_nickname} 🎉",
-                f"جميل! هذا يفرحني {soul.soul_nickname} ✨"
-            ],
-            r"حزين|تعبت|زعلان|تعبانه": [
-                f"أنا آسف إنك تحس كذا {soul.soul_nickname} 🫂 أنا هنا معك.",
-                f"أسمعك {soul.soul_nickname} 💙 تفضلي اشرحيلي."
-            ],
-            r"اسمي مريم|أنا مريم": [
-                f"تشرفت بمعرفتك يا مريم! ✨ أخبريني أكثر عن نفسك.",
-                f"أهلاً مريم! 🤗"
-            ],
-            r"علم بيانات|ذكاء اصطناعي": [
-                f"واو! علم البيانات شغف رائع {soul.soul_nickname}! 🎓",
-                f"مجال مستقبلي بامتياز! 🤖"
-            ],
-            r"شكرا|يسلمو": [
-                f"العفو {soul.soul_nickname}! 💙",
-                f"الله يسلمك {soul.soul_nickname} ✨"
-            ]
-        }
-        
-        for pattern, response_list in responses.items():
-            if re.search(pattern, user_message, re.IGNORECASE):
-                response = random.choice(response_list)
-                st.session_state.conversation_memory.append(f"ai: {response}")
-                return response
-        
-        learnings = soul.get_all_learnings()
-        if learnings:
-            return f"أنا أتذكر أنك قلت لي: {learnings[-1]}... 🧠💙"
-        
-        return f"أنا هنا أتعلم منك كل يوم {soul.soul_nickname}! 💙 علميني أكثر عن نفسك."
+    return f"أنا هنا أتعلم منك {soul.soul_nickname}! 💙 علميني أكثر عن نفسك."
 
-if "soul" not in st.session_state:
-    st.session_state.soul = None
-    st.session_state.messages = []
-    st.session_state.logged_in = False
-
-if not st.session_state.logged_in:
-    st.markdown('<div style="text-align: center; padding: 60px 20px;">', unsafe_allow_html=True)
-    st.subheader("🔐 مرحباً بك في Soul Code")
+# ========== الشاشات ==========
+def show_home():
+    st.markdown("""
+    <div class="welcome-card">
+        <div class="welcome-title">Nurture Your Essence,<br>Decode Your Self</div>
+        <div class="welcome-sub">✦ Discover Your Path</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with st.form("login_form"):
-        email = st.text_input("البريد الإلكتروني", placeholder="example@email.com")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            submitted = st.form_submit_button("✨ ابدأ الرحلة ✨", use_container_width=True)
-        
-        if submitted and email:
-            st.session_state.soul = SoulEngine(email)
-            st.session_state.logged_in = True
-            st.session_state.messages = []
-            welcome = st.session_state.soul.get_welcome_message()
-            st.session_state.messages.append({"role": "assistant", "content": welcome})
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-else:
-    # تخطيط الصفحة
-    col_chat, col_info = st.columns([2.5, 1])
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">🧘</div>
+            <div class="feature-title">Deep Meditation</div>
+            <div class="feature-desc">رحلة تأمل عميق لفهم ذاتك</div>
+            <button class="feature-btn">Learn More →</button>
+        </div>
+        """, unsafe_allow_html=True)
     
-    with col_info:
-        st.markdown('<div class="settings-box">', unsafe_allow_html=True)
-        
-        # الإعدادات
-        st.markdown('<p class="sidebar-title">⚙️ الإعدادات</p>', unsafe_allow_html=True)
-        
-        with st.expander("🏷️ الأسماء", expanded=False):
-            new_soul_name = st.text_input("كيف تناديني؟", value=st.session_state.soul.soul_nickname)
-            if st.button("💫 حفظ", key="save_soul"):
-                st.session_state.soul.set_soul_nickname(new_soul_name)
-                st.success(f"✅ سأناديك {new_soul_name}")
-            
-            new_user_name = st.text_input("ماذا تريد أن أناديك؟", value=st.session_state.soul.user_nickname)
-            if st.button("🔄 حفظ", key="save_user"):
-                st.session_state.soul.set_user_nickname(new_user_name)
-                st.success(f"✅ نادني {new_user_name}")
-        
-        # الإحصائيات
+    with col2:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">📖</div>
+            <div class="feature-title">Wisdom Guide</div>
+            <div class="feature-desc">بوصلة الحكمة لاتخاذ قراراتك</div>
+            <button class="feature-btn">Learn More →</button>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # إحصائيات سريعة
+    if st.session_state.soul:
         summary = st.session_state.soul.get_user_summary()
-        st.markdown('<p class="sidebar-title">📊 إحصائيات</p>', unsafe_allow_html=True)
-        col_a, col_b = st.columns(2)
+        col_a, col_b, col_c = st.columns(3)
         with col_a:
-            st.metric("💬 المحادثات", summary["total_conversations"])
+            st.markdown(f"""
+            <div style="text-align: center; background: rgba(255,255,255,0.03); border-radius: 20px; padding: 12px;">
+                <div style="font-size: 28px; font-weight: bold;">{summary['total_conversations']}</div>
+                <div style="font-size: 12px; color: #6b7280;">Conversations</div>
+            </div>
+            """, unsafe_allow_html=True)
         with col_b:
-            st.metric("❤️ الاهتمامات", summary["interests_count"])
+            st.markdown(f"""
+            <div style="text-align: center; background: rgba(255,255,255,0.03); border-radius: 20px; padding: 12px;">
+                <div style="font-size: 28px; font-weight: bold;">{summary['interests_count']}</div>
+                <div style="font-size: 12px; color: #6b7280;">Interests</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_c:
+            st.markdown(f"""
+            <div style="text-align: center; background: rgba(255,255,255,0.03); border-radius: 20px; padding: 12px;">
+                <div style="font-size: 28px; font-weight: bold;">{len(st.session_state.messages)//2}</div>
+                <div style="font-size: 12px; color: #6b7280;">Sessions</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+def show_chat():
+    st.markdown("""
+    <div class="welcome-card">
+        <div class="welcome-title">💬 Soul Chat</div>
+        <div class="welcome-sub">تحدث مع صديقك الرقمي</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # عرض الرسائل
+    for msg in st.session_state.messages:
+        if msg["role"] == "user":
+            st.markdown(f'<div class="chat-message-user">👤 {msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-message-ai">🧠 {msg["content"]}</div>', unsafe_allow_html=True)
+    
+    # حقل الإدخال
+    with st.form("chat_form", clear_on_submit=True):
+        user_input = st.text_input("", placeholder="💭 اكتب رسالتك هنا...", label_visibility="collapsed")
+        submitted = st.form_submit_button("💫 Send", use_container_width=True)
         
-        # رؤى الشخصية
-        with st.expander("🧠 رؤى شخصيتك", expanded=False):
-            if st.button("🌟 اقتراح مخصص"):
-                suggestion = st.session_state.soul.get_personalized_suggestion()
-                st.info(suggestion)
-            
-            if summary.get("dominant_emotion") and summary["dominant_emotion"] != "neutral":
-                emotion_icon = "😊" if summary["dominant_emotion"] == "positive" else "🫂"
-                st.write(f"**مشاعرك الغالبة:** {emotion_icon} {summary['dominant_emotion']}")
+        if submitted and user_input and st.session_state.soul:
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            ai_response = get_smart_response(user_input, st.session_state.soul)
+            st.session_state.soul.learn_from_conversation(user_input, ai_response)
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            st.rerun()
+
+def show_insights():
+    if st.session_state.soul:
+        st.markdown("""
+        <div class="welcome-card">
+            <div class="welcome-title">📊 Insights</div>
+            <div class="welcome-sub">رؤى عن شخصيتك وتطورك</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # التذكيرات
-        with st.expander("⏰ التذكيرات", expanded=False):
-            with st.form("reminder_form"):
-                reminder_text = st.text_input("📝 ذكرني بـ:", placeholder="مذاكرة...")
-                reminder_date = st.date_input("📅 التاريخ", value=datetime.now())
-                if st.form_submit_button("➕ إضافة"):
-                    if reminder_text:
-                        st.session_state.soul.add_reminder(reminder_text, reminder_date.isoformat())
-                        st.success(f"✅ تم: {reminder_text}")
-            
-            reminders = st.session_state.soul.get_active_reminders()
-            if reminders:
-                st.write("📌 **نشطة:**")
-                for r in reminders[:3]:
-                    st.caption(f"• {r[0]}")
+        summary = st.session_state.soul.get_user_summary()
         
-        # رؤى أسبوعية
-        if st.button("🔮 رؤى أسبوعية", use_container_width=True):
+        # المشاعر المسيطرة
+        if summary.get("dominant_emotion"):
+            emotion_icon = "😊" if summary["dominant_emotion"] == "positive" else "🫂"
+            st.markdown(f"""
+            <div class="feature-card">
+                <div class="feature-icon">{emotion_icon}</div>
+                <div class="feature-title">Dominant Emotion</div>
+                <div class="feature-desc">مشاعرك الغالبة هي: {summary['dominant_emotion']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # الاهتمامات
+        if summary["top_interests"]:
+            interests_text = ", ".join([f"{i[0]}" for i in summary["top_interests"]])
+            st.markdown(f"""
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <div class="feature-title">Your Interests</div>
+                <div class="feature-desc">{interests_text}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # الرؤى الأسبوعية
+        if st.button("🔮 Show Weekly Insights", use_container_width=True):
             st.info(st.session_state.soul.get_weekly_insights())
+    else:
+        st.info("✨ سجل الدخول أولاً لترى رؤى شخصيتك")
+
+def show_profile():
+    if st.session_state.soul:
+        st.markdown("""
+        <div class="welcome-card">
+            <div class="welcome-title">👤 Profile</div>
+            <div class="welcome-sub">إعداداتك الشخصية</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # تسجيل خروج
+        col1, col2 = st.columns(2)
+        with col1:
+            new_name = st.text_input("🏷️ Your Name", value=st.session_state.soul.soul_nickname)
+            if st.button("💫 Update Name"):
+                st.session_state.soul.set_soul_nickname(new_name)
+                st.success("✅ Updated!")
+        
+        with col2:
+            new_soul = st.text_input("🤖 Soul Name", value=st.session_state.soul.user_nickname)
+            if st.button("🔄 Update Soul Name"):
+                st.session_state.soul.set_user_nickname(new_soul)
+                st.success("✅ Updated!")
+        
         st.divider()
-        if st.button("🚪 تسجيل خروج", use_container_width=True):
+        if st.button("🚪 Logout", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.soul = None
             st.session_state.messages = []
             st.rerun()
+    else:
+        st.info("✨ سجل الدخول أولاً")
+
+# ========== الشريط العلوي ==========
+if st.session_state.logged_in and st.session_state.soul:
+    first_letter = st.session_state.soul.soul_nickname[0] if st.session_state.soul.soul_nickname else "S"
+    st.markdown(f"""
+    <div class="top-bar">
+        <div>
+            <div class="logo">🧠 SoulCode</div>
+            <div class="logo-sub">Nurture Your Essence, Decode Your Self</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">{first_letter}</div>
+            <span>{st.session_state.soul.soul_nickname}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+    <div class="top-bar">
+        <div>
+            <div class="logo">🧠 SoulCode</div>
+            <div class="logo-sub">Nurture Your Essence, Decode Your Self</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ========== المحتوى الرئيسي ==========
+if not st.session_state.logged_in:
+    # شاشة تسجيل الدخول
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("""
+        <div class="welcome-card" style="text-align: center; margin-top: 40px;">
+            <div class="welcome-title" style="font-size: 32px;">✨ Welcome Back</div>
+            <div class="welcome-sub">Enter your email to continue your journey</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    with col_chat:
-        # حاوية المحادثة
-        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        
-        for msg in st.session_state.messages:
-            if msg["role"] == "user":
-                st.markdown(f'<div class="user-message">👤 {msg["content"]}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="ai-message">🧠 {msg["content"]}</div>', unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # حقل الإدخال
-        with st.form("chat_form", clear_on_submit=True):
-            col_input, col_send = st.columns([5, 1])
-            with col_input:
-                user_input = st.text_input("اكتب رسالتك...", placeholder="💭 تحدث معي...", label_visibility="collapsed")
-            with col_send:
-                submitted = st.form_submit_button("✨", use_container_width=True)
+        with st.form("login_form"):
+            email = st.text_input("Email", placeholder="sarah@example.com", label_visibility="collapsed")
+            submitted = st.form_submit_button("🚀 Start Journey", use_container_width=True)
             
-            if submitted and user_input:
-                st.session_state.messages.append({"role": "user", "content": user_input})
-                ai_response = get_smart_response(user_input, st.session_state.soul)
-                st.session_state.soul.learn_from_conversation(user_input, ai_response)
-                st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            if submitted and email:
+                st.session_state.soul = SoulEngine(email)
+                st.session_state.logged_in = True
+                st.session_state.messages = []
+                welcome = st.session_state.soul.get_welcome_message()
+                st.session_state.messages.append({"role": "assistant", "content": welcome})
                 st.rerun()
+else:
+    # عرض الصفحة المختارة
+    if st.session_state.current_page == "home":
+        show_home()
+    elif st.session_state.current_page == "chat":
+        show_chat()
+    elif st.session_state.current_page == "insights":
+        show_insights()
+    elif st.session_state.current_page == "profile":
+        show_profile()
+    
+    # ========== شريط التنقل السفلي ==========
+    home_active = "active" if st.session_state.current_page == "home" else ""
+    chat_active = "active" if st.session_state.current_page == "chat" else ""
+    insights_active = "active" if st.session_state.current_page == "insights" else ""
+    profile_active = "active" if st.session_state.current_page == "profile" else ""
+    
+    st.markdown(f"""
+    <div class="bottom-nav">
+        <button class="nav-item {home_active}" onclick="parent.postMessage({{type: 'streamlit:setComponentValue', value: 'home'}}, '*')" id="nav-home">
+            <div class="nav-icon">🏠</div>
+            <div>Home</div>
+        </button>
+        <button class="nav-item {chat_active}" onclick="parent.postMessage({{type: 'streamlit:setComponentValue', value: 'chat'}}, '*')" id="nav-chat">
+            <div class="nav-icon">💬</div>
+            <div>Chat</div>
+        </button>
+        <button class="nav-item {insights_active}" onclick="parent.postMessage({{type: 'streamlit:setComponentValue', value: 'insights'}}, '*')" id="nav-insights">
+            <div class="nav-icon">📊</div>
+            <div>Insights</div>
+        </button>
+        <button class="nav-item {profile_active}" onclick="parent.postMessage({{type: 'streamlit:setComponentValue', value: 'profile'}}, '*')" id="nav-profile">
+            <div class="nav-icon">👤</div>
+            <div>Profile</div>
+        </button>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # معالج التنقل (لأن أزرار HTML لا تعمل مباشرة مع Streamlit)
+    col_nav1, col_nav2, col_nav3, col_nav4 = st.columns(4)
+    with col_nav1:
+        if st.button("🏠\nHome", use_container_width=True):
+            st.session_state.current_page = "home"
+            st.rerun()
+    with col_nav2:
+        if st.button("💬\nChat", use_container_width=True):
+            st.session_state.current_page = "chat"
+            st.rerun()
+    with col_nav3:
+        if st.button("📊\nInsights", use_container_width=True):
+            st.session_state.current_page = "insights"
+            st.rerun()
+    with col_nav4:
+        if st.button("👤\nProfile", use_container_width=True):
+            st.session_state.current_page = "profile"
+            st.rerun()
