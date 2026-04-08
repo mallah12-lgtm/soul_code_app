@@ -42,7 +42,18 @@ class SoulEngine:
         self.user_nickname = self.profile.get("user_nickname", "Soul Code")
         self.soul_nickname = self.profile.get("soul_nickname", "صديقي")
         
+        # ========== نظم الذاكرة المتقدمة ==========
+        self.context_stack = []
+        self.user_personality = {
+            "dominant_emotion": "neutral",
+            "interests_depth": {},
+            "growth_areas": [],
+            "frequent_topics": [],
+            "emotional_history": []
+        }
+        
         self.init_database()
+        self.load_personality_profile()
         
     def sanitize_email(self, email):
         return email.replace('@', '_at_').replace('.', '_dot_')
@@ -130,12 +141,16 @@ class SoulEngine:
         detected_lang = self.detect_language(user_message)
         self.preferred_language = detected_lang
         
+        # تحليل الرسالة
+        analysis = self.analyze_message(user_message)
+        
         memory = {
             "timestamp": datetime.now().isoformat(),
             "user": user_message,
             "ai": ai_response,
             "keywords": self.extract_keywords(user_message),
-            "emotional_tone": self.analyze_emotion(user_message, detected_lang),
+            "emotional_tone": analysis["sentiment"],
+            "topic": analysis["topic"],
             "language": detected_lang
         }
         self.memories.append(memory)
@@ -152,6 +167,9 @@ class SoulEngine:
             "mood": memory["emotional_tone"],
             "context": user_message[:100]
         })
+        
+        # تحديث الذاكرة السياقية وتحليل الشخصية
+        self.update_context(user_message, ai_response, analysis["topic"], analysis["sentiment"])
         
         self.save_all()
         return memory
@@ -304,10 +322,12 @@ Talk as a real friend:
             "preferred_language": self.preferred_language,
             "user_nickname": self.user_nickname,
             "soul_nickname": self.soul_nickname,
-            "user_email": self.user_email
+            "user_email": self.user_email,
+            "dominant_emotion": self.user_personality.get("dominant_emotion", "neutral"),
+            "growth_areas": self.user_personality.get("growth_areas", [])
         }
     
-    # ========== دوال التعلم والذاكرة ==========
+    # ========== دوال التعلم والذاكرة المتقدمة ==========
     
     def init_database(self):
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
@@ -325,6 +345,12 @@ Talk as a real friend:
                       source TEXT,
                       confidence REAL,
                       timestamp TEXT)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS reminders
+                     (id INTEGER PRIMARY KEY,
+                      reminder_text TEXT,
+                      due_date TEXT,
+                      is_done INTEGER DEFAULT 0,
+                      timestamp TEXT)''')
         conn.commit()
         conn.close()
     
@@ -338,14 +364,32 @@ Talk as a real friend:
         conn.commit()
         conn.close()
     
-    def learn_fact(self, fact, source="conversation"):
+    def learn_fact(self, fact, source="conversation", confidence=0.7):
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
         c = conn.cursor()
         c.execute('''INSERT INTO learnings (fact, source, confidence, timestamp)
                      VALUES (?, ?, ?, ?)''',
-                  (fact, source, 0.7, datetime.now().isoformat()))
+                  (fact, source, confidence, datetime.now().isoformat()))
         conn.commit()
         conn.close()
+    
+    def add_reminder(self, reminder_text, due_date):
+        conn = sqlite3.connect(f'{self.data_folder}/learning.db')
+        c = conn.cursor()
+        c.execute('''INSERT INTO reminders (reminder_text, due_date, timestamp)
+                     VALUES (?, ?, ?)''',
+                  (reminder_text, due_date, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        self.learn_fact(f"تذكير: {reminder_text} بتاريخ {due_date}", source="reminder")
+    
+    def get_active_reminders(self):
+        conn = sqlite3.connect(f'{self.data_folder}/learning.db')
+        c = conn.cursor()
+        c.execute('SELECT reminder_text, due_date FROM reminders WHERE is_done = 0 ORDER BY due_date')
+        reminders = c.fetchall()
+        conn.close()
+        return reminders
     
     def get_all_learnings(self):
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
@@ -408,3 +452,92 @@ Talk as a real friend:
             analysis["questions"].append(message)
         
         return analysis
+    
+    # ========== دوال الذاكرة السياقية وتحليل الشخصية ==========
+    
+    def update_context(self, user_msg, ai_msg, topic, sentiment):
+        """تحديث الذاكرة السياقية"""
+        self.context_stack.append({
+            "user": user_msg,
+            "ai": ai_msg,
+            "topic": topic,
+            "sentiment": sentiment,
+            "timestamp": datetime.now().isoformat()
+        })
+        if len(self.context_stack) > 10:
+            self.context_stack.pop(0)
+        
+        self.update_personality_profile(topic, sentiment, user_msg)
+        self.save_personality_profile()
+    
+    def update_personality_profile(self, topic, sentiment, message):
+        """تحليل الشخصية مع الوقت"""
+        if sentiment != "neutral":
+            self.user_personality["dominant_emotion"] = sentiment
+        
+        if topic in self.user_personality["interests_depth"]:
+            self.user_personality["interests_depth"][topic] += 1
+        else:
+            self.user_personality["interests_depth"][topic] = 1
+        
+        # تتبع المشاعر عبر الزمن
+        self.user_personality["emotional_history"].append({
+            "sentiment": sentiment,
+            "timestamp": datetime.now().isoformat()
+        })
+        if len(self.user_personality["emotional_history"]) > 30:
+            self.user_personality["emotional_history"] = self.user_personality["emotional_history"][-30:]
+        
+        growth_keywords = ["أتعلم", "أطور", "أحسن", "أبي", "طموحي", "هدف", "حلم"]
+        if any(kw in message for kw in growth_keywords):
+            self.user_personality["growth_areas"].append(message[:50])
+            self.user_personality["growth_areas"] = list(set(self.user_personality["growth_areas"]))
+    
+    def save_personality_profile(self):
+        with open(f"{self.data_folder}/{self.user_id}_personality.json", 'w', encoding='utf-8') as f:
+            json.dump(self.user_personality, f, ensure_ascii=False, indent=2)
+    
+    def load_personality_profile(self):
+        personality_file = f"{self.data_folder}/{self.user_id}_personality.json"
+        if os.path.exists(personality_file):
+            with open(personality_file, 'r', encoding='utf-8') as f:
+                self.user_personality = json.load(f)
+    
+    def get_personalized_suggestion(self):
+        """اقتراح مخصص بناءً على الشخصية"""
+        if self.user_personality["interests_depth"]:
+            main_topic = max(self.user_personality["interests_depth"], key=self.user_personality["interests_depth"].get)
+            
+            suggestions = {
+                "ai": "📚 شفتِ آخر أخبار الذكاء الاصطناعي؟ فيه نماذج جديدة تطورت كثير! تابعي Andrew Ng على LinkedIn.",
+                "study": "🎓 أنصحك بموقع Coursera أو edX، فيه دورات مجانية رهيبة في تخصصك. ولو تبغي شيء عربي، شوفي منصة إدراك.",
+                "health": "💆‍♀️ خذي 5 دقائق تنفس عميق كل صباح، راح يغير يومك. وجربي تطبيق Headspace للتأمل.",
+                "feelings": "💙 تذكري أن مشاعرك طبيعية. جربي تكتبي 3 أشياء ممتنة لها كل يوم، راح تحسني مزاجك.",
+                "dreams": "🚀 اكتبي هدفك الكبير على ورقة وحطيها قدام مكتبك. التذكير البصري يصنع المعجزات!",
+                "career": "💼 أنصحك تبني بروفايل LinkedIn قوي، وتتابعي الشركات اللي تطمحين تشتغلي فيها.",
+                "general": "🌟 أنت مذهلة! استمري في التطور والتعلم. العالم بحاجة لأشخاص زيك."
+            }
+            return suggestions.get(main_topic, suggestions["general"])
+        return "🌟 أنا فخور بتطورك معي يومًا بعد يوم. استمري في المشاركة عشان أعرفك أكثر!"
+    
+    def get_contextual_response(self, user_message):
+        """رد يعتمد على السياق السابق"""
+        if not self.context_stack:
+            return None
+        
+        last_context = self.context_stack[-1]
+        current_sentiment = self.analyze_message(user_message)["sentiment"]
+        
+        if any(kw in user_message for kw in ["وكمان", "أيضًا", "بعدين", "كمّل", "كمل"]):
+            return f"أكمل على موضوع {last_context['topic']}: {last_context['ai'][:100]}..."
+        
+        if current_sentiment == last_context["sentiment"] and last_context["sentiment"] != "neutral":
+            if last_context["sentiment"] == "negative":
+                return f"أشعر أنك لسا حزين مثل آخر مرة 🫂 تذكر أنني هنا لأسمعك دائمًا. هل تحب تشاركني أكثر؟"
+            elif last_context["sentiment"] == "positive":
+                return f"سعادتك مستمرة مثل آخر مرة! 🎉 أخبرني الجديد في حياتك."
+        
+        if last_context["topic"] == self.analyze_message(user_message)["topic"]:
+            return f"نرجع لموضوع {last_context['topic']} مرة ثانية. {last_context['ai'][:150]}"
+        
+        return None
