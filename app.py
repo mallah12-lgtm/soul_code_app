@@ -6,7 +6,7 @@ import google.generativeai as genai
 st.set_page_config(page_title="Soul Code AI", page_icon="🧠", layout="wide")
 
 # --- إعداد جيميناي (GEMINI CONFIG) ---
-GOOGLE_API_KEY = "AIzaSyCeT1nqiYIAU4AsItjfpXnAqCB1KPotz3s" 
+GOOGLE_API_KEY = "AIzaSyAR0iwF5_S3PKrMwvfq9StZrMS02t1Hlss" 
 genai.configure(api_key=GOOGLE_API_KEY)
 
 # دالة ذكية لاختيار الموديل المتاح تلقائياً
