@@ -42,14 +42,17 @@ class SoulEngine:
         self.user_nickname = self.profile.get("user_nickname", "Soul Code")
         self.soul_nickname = self.profile.get("soul_nickname", "صديقي")
         
-        # ========== نظم الذاكرة المتقدمة ==========
+        # ========== الذاكرة الدائمة المتطورة ==========
         self.context_stack = []
         self.user_personality = {
             "dominant_emotion": "neutral",
             "interests_depth": {},
             "growth_areas": [],
             "frequent_topics": [],
-            "emotional_history": []
+            "emotional_history": [],
+            "important_events": [],      # الأحداث المهمة مثل "خلصت اختبارات"
+            "user_facts": {},            # حقائق عن المستخدم (الاسم، العمر، الدراسة)
+            "conversation_topics": []    # مواضيع المحادثات السابقة
         }
         
         self.init_database()
@@ -141,7 +144,6 @@ class SoulEngine:
         detected_lang = self.detect_language(user_message)
         self.preferred_language = detected_lang
         
-        # تحليل الرسالة
         analysis = self.analyze_message(user_message)
         
         memory = {
@@ -168,8 +170,9 @@ class SoulEngine:
             "context": user_message[:100]
         })
         
-        # تحديث الذاكرة السياقية وتحليل الشخصية
+        # تحديث الذاكرة وتحليل الشخصية
         self.update_context(user_message, ai_response, analysis["topic"], analysis["sentiment"])
+        self.extract_important_info(user_message)
         
         self.save_all()
         return memory
@@ -305,10 +308,15 @@ Talk as a real friend:
         return insights.get(self.preferred_language, insights["english"])
     
     def get_welcome_message(self):
+        # رسالة ترحيب ذكية تعتمد على الذاكرة
+        if self.user_personality["user_facts"].get("name"):
+            name = self.user_personality["user_facts"]["name"]
+            return f"مرحباً {name}! 🤗 أنا {self.user_nickname}، صديقك الرقمي. سعيدة برؤيتك مرة ثانية! كيف حالك اليوم؟"
+        
         messages = {
-            "arabic": f"مرحباً {self.soul_nickname}! أنا {self.user_nickname}، صديقك الرقمي. كيف حالك اليوم؟",
-            "turkish": f"Merhaba {self.soul_nickname}! Ben {self.user_nickname}, dijital arkadaşınız. Bugün nasılsın?",
-            "english": f"Hello {self.soul_nickname}! I'm {self.user_nickname}, your digital friend. How are you today?"
+            "arabic": f"مرحباً {self.soul_nickname}! 🤗 أنا {self.user_nickname}، صديقك الرقمي. كيف حالك اليوم؟",
+            "turkish": f"Merhaba {self.soul_nickname}! 🤗 Ben {self.user_nickname}, dijital arkadaşınız. Bugün nasılsın?",
+            "english": f"Hello {self.soul_nickname}! 🤗 I'm {self.user_nickname}, your digital friend. How are you today?"
         }
         return messages.get(self.preferred_language, messages["english"])
     
@@ -324,10 +332,11 @@ Talk as a real friend:
             "soul_nickname": self.soul_nickname,
             "user_email": self.user_email,
             "dominant_emotion": self.user_personality.get("dominant_emotion", "neutral"),
-            "growth_areas": self.user_personality.get("growth_areas", [])
+            "growth_areas": self.user_personality.get("growth_areas", []),
+            "user_facts": self.user_personality.get("user_facts", {})
         }
     
-    # ========== دوال التعلم والذاكرة المتقدمة ==========
+    # ========== دوال الذاكرة الدائمة المتطورة ==========
     
     def init_database(self):
         conn = sqlite3.connect(f'{self.data_folder}/learning.db')
@@ -416,12 +425,13 @@ Talk as a real friend:
         }
         
         topics = {
-            "study": ["دراسة", "جامعة", "كلية", "علم", "تعلم", "مادة", "امتحان"],
+            "study": ["دراسة", "جامعة", "كلية", "علم", "تعلم", "مادة", "امتحان", "اختبار"],
             "career": ["وظيفة", "شغل", "مهنة", "عمل", "شركة", "مهندس"],
             "health": ["صحة", "تعب", "مرض", "دواء", "دكتور", "مستشفى"],
             "feelings": ["سعيد", "حزين", "زعلان", "فرحان", "مبسوط", "متضايق"],
             "dreams": ["حلم", "طموح", "مستقبل", "أمنية", "هدف"],
-            "ai": ["ذكاء اصطناعي", "بيانات", "برمجة", "خوارزم", "تعلم آلة"]
+            "ai": ["ذكاء اصطناعي", "بيانات", "برمجة", "خوارزم", "تعلم آلة"],
+            "exam": ["اختبار", "امتحان", "نهائي", "فاينل", "خلصت اختبار"]
         }
         
         for topic, keywords in topics.items():
@@ -429,8 +439,8 @@ Talk as a real friend:
                 analysis["topic"] = topic
                 break
         
-        positive = ["سعيد", "فرحان", "مبسوط", "رائع", "جميل", "حلو", "ممتاز"]
-        negative = ["حزين", "زعلان", "تعبان", "متضايق", "صعب", "تعب", "ضيق"]
+        positive = ["سعيد", "فرحان", "مبسوط", "رائع", "جميل", "حلو", "ممتاز", "بخير", "تمام"]
+        negative = ["حزين", "زعلان", "تعبان", "متضايق", "صعب", "تعب", "ضيق", "تعبانه"]
         
         pos_count = sum(1 for w in positive if w in message.lower())
         neg_count = sum(1 for w in negative if w in message.lower())
@@ -448,15 +458,59 @@ Talk as a real friend:
         if age_match:
             analysis["facts"].append(f"العمر: {age_match.group(1)}")
         
+        # كشف الأحداث المهمة
+        if "خلصت اختبار" in message.lower() or "خلصت امتحان" in message.lower():
+            analysis["facts"].append("حدث: انتهت الاختبارات النهائية")
+        
         if "?" in message or "؟" in message or "شو" in message or "كيف" in message:
             analysis["questions"].append(message)
         
         return analysis
     
-    # ========== دوال الذاكرة السياقية وتحليل الشخصية ==========
+    # ========== دوال الذاكرة الدائمة ==========
+    
+    def extract_important_info(self, message):
+        """استخراج المعلومات المهمة وحفظها في الذاكرة الدائمة"""
+        msg_lower = message.lower()
+        
+        # حفظ الاسم
+        name_match = re.search(r'اسمي (\w+)', message)
+        if name_match:
+            name = name_match.group(1)
+            self.user_personality["user_facts"]["name"] = name
+            self.learn_fact(f"اسم المستخدم: {name}", source="extracted", confidence=0.95)
+        
+        # حفظ العمر
+        age_match = re.search(r'عمري (\d+)', message)
+        if age_match:
+            age = age_match.group(1)
+            self.user_personality["user_facts"]["age"] = age
+            self.learn_fact(f"عمر المستخدم: {age}", source="extracted", confidence=0.95)
+        
+        # حفظ مجال الدراسة
+        if "علم بيانات" in msg_lower or "ذكاء اصطناعي" in msg_lower:
+            self.user_personality["user_facts"]["study_field"] = "علم البيانات والذكاء الاصطناعي"
+            self.learn_fact(f"مجال الدراسة: علم البيانات والذكاء الاصطناعي", source="extracted", confidence=0.95)
+        
+        # حفظ الأحداث المهمة
+        if "خلصت اختبار" in msg_lower or "خلصت امتحان" in msg_lower:
+            event = "انتهت الاختبارات النهائية"
+            if event not in self.user_personality["important_events"]:
+                self.user_personality["important_events"].append({
+                    "event": event,
+                    "timestamp": datetime.now().isoformat()
+                })
+                self.learn_fact(f"حدث مهم: {event}", source="extracted", confidence=0.95)
+        
+        # حفظ الأهداف والطموحات
+        if "حلم" in msg_lower or "طموح" in msg_lower or "بعدين" in msg_lower:
+            if len(message) > 10:
+                self.user_personality["growth_areas"].append(message[:100])
+                self.user_personality["growth_areas"] = list(set(self.user_personality["growth_areas"]))
+        
+        self.save_personality_profile()
     
     def update_context(self, user_msg, ai_msg, topic, sentiment):
-        """تحديث الذاكرة السياقية"""
         self.context_stack.append({
             "user": user_msg,
             "ai": ai_msg,
@@ -471,7 +525,6 @@ Talk as a real friend:
         self.save_personality_profile()
     
     def update_personality_profile(self, topic, sentiment, message):
-        """تحليل الشخصية مع الوقت"""
         if sentiment != "neutral":
             self.user_personality["dominant_emotion"] = sentiment
         
@@ -480,7 +533,6 @@ Talk as a real friend:
         else:
             self.user_personality["interests_depth"][topic] = 1
         
-        # تتبع المشاعر عبر الزمن
         self.user_personality["emotional_history"].append({
             "sentiment": sentiment,
             "timestamp": datetime.now().isoformat()
@@ -504,24 +556,22 @@ Talk as a real friend:
                 self.user_personality = json.load(f)
     
     def get_personalized_suggestion(self):
-        """اقتراح مخصص بناءً على الشخصية"""
         if self.user_personality["interests_depth"]:
             main_topic = max(self.user_personality["interests_depth"], key=self.user_personality["interests_depth"].get)
             
             suggestions = {
                 "ai": "📚 شفتِ آخر أخبار الذكاء الاصطناعي؟ فيه نماذج جديدة تطورت كثير! تابعي Andrew Ng على LinkedIn.",
-                "study": "🎓 أنصحك بموقع Coursera أو edX، فيه دورات مجانية رهيبة في تخصصك. ولو تبغي شيء عربي، شوفي منصة إدراك.",
-                "health": "💆‍♀️ خذي 5 دقائق تنفس عميق كل صباح، راح يغير يومك. وجربي تطبيق Headspace للتأمل.",
-                "feelings": "💙 تذكري أن مشاعرك طبيعية. جربي تكتبي 3 أشياء ممتنة لها كل يوم، راح تحسني مزاجك.",
-                "dreams": "🚀 اكتبي هدفك الكبير على ورقة وحطيها قدام مكتبك. التذكير البصري يصنع المعجزات!",
-                "career": "💼 أنصحك تبني بروفايل LinkedIn قوي، وتتابعي الشركات اللي تطمحين تشتغلي فيها.",
-                "general": "🌟 أنت مذهلة! استمري في التطور والتعلم. العالم بحاجة لأشخاص زيك."
+                "study": "🎓 أنصحك بموقع Coursera أو edX، فيه دورات مجانية رهيبة في تخصصك.",
+                "health": "💆‍♀️ خذي 5 دقائق تنفس عميق كل صباح، راح يغير يومك.",
+                "feelings": "💙 تذكري أن مشاعرك طبيعية. جربي تكتبي 3 أشياء ممتنة لها كل يوم.",
+                "dreams": "🚀 اكتبي هدفك الكبير على ورقة وحطيها قدام مكتبك.",
+                "exam": "🎉 مبروك على إنهاء الاختبارات! الحين تقدري تريحي وتعملي أشياء تحبيها.",
+                "general": "🌟 أنت مذهلة! استمري في التطور والتعلم."
             }
             return suggestions.get(main_topic, suggestions["general"])
-        return "🌟 أنا فخور بتطورك معي يومًا بعد يوم. استمري في المشاركة عشان أعرفك أكثر!"
+        return "🌟 أنا فخور بتطورك معي يومًا بعد يوم."
     
     def get_contextual_response(self, user_message):
-        """رد يعتمد على السياق السابق"""
         if not self.context_stack:
             return None
         
@@ -533,11 +583,23 @@ Talk as a real friend:
         
         if current_sentiment == last_context["sentiment"] and last_context["sentiment"] != "neutral":
             if last_context["sentiment"] == "negative":
-                return f"أشعر أنك لسا حزين مثل آخر مرة 🫂 تذكر أنني هنا لأسمعك دائمًا. هل تحب تشاركني أكثر؟"
+                return f"أشعر أنك لسا حزين مثل آخر مرة 🫂 تذكر أنني هنا لأسمعك دائمًا."
             elif last_context["sentiment"] == "positive":
                 return f"سعادتك مستمرة مثل آخر مرة! 🎉 أخبرني الجديد في حياتك."
         
-        if last_context["topic"] == self.analyze_message(user_message)["topic"]:
-            return f"نرجع لموضوع {last_context['topic']} مرة ثانية. {last_context['ai'][:150]}"
-        
         return None
+    
+    def recall_user_info(self):
+        """استرجاع كل المعلومات المخزنة عن المستخدم"""
+        info = []
+        if "name" in self.user_personality["user_facts"]:
+            info.append(f"اسمك {self.user_personality['user_facts']['name']}")
+        if "age" in self.user_personality["user_facts"]:
+            info.append(f"عمرك {self.user_personality['user_facts']['age']} سنة")
+        if "study_field" in self.user_personality["user_facts"]:
+            info.append(f"تدرسين {self.user_personality['user_facts']['study_field']}")
+        if self.user_personality["important_events"]:
+            last_event = self.user_personality["important_events"][-1]
+            info.append(f"آخر حدث مهم: {last_event['event']}")
+        
+        return info
