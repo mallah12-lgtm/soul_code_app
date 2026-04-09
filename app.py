@@ -45,7 +45,7 @@ if not st.session_state.logged_in:
         </div>
         """, unsafe_allow_html=True)
         with st.form("login_form"):
-            email = st.text_input("Email", placeholder="mariam@example.com", label_visibility="collapsed")
+            email = st.text_input("البريد الإلكتروني", placeholder="example@email.com", label_visibility="collapsed")
             if st.form_submit_button("🚀 إبدأي الرحلة 💙", use_container_width=True) and email:
                 st.session_state.soul = SoulEngine(email)
                 st.session_state.logged_in = True
