@@ -8,17 +8,19 @@ import sqlite3
 class SoulEngine:
     
     def __init__(self, user_email):
+        # 1. أول شيء: تعريف data_folder
         self.user_email = user_email
         self.user_id = self.sanitize_email(user_email)
-        
-        # تأكد من إنشاء مجلد data أولاً
         self.data_folder = "data"
-        if not os.path.exists(self.data_folder):
-            os.makedirs(self.data_folder)
         
+        # 2. إنشاء المجلد إذا ما كان موجود
+        os.makedirs(self.data_folder, exist_ok=True)
+        
+        # 3. تعريف باقي المسارات
         self.profile_file = f"{self.data_folder}/{self.user_id}_profile.json"
         self.memory_file = f"{self.data_folder}/{self.user_id}_memories.json"
         
+        # 4. تعريف باقي المتغيرات
         self.dimensions = {
             "openness": 0.5,
             "conscientiousness": 0.5,
@@ -38,13 +40,15 @@ class SoulEngine:
         self.user_nickname = "Soul Code"
         self.soul_nickname = "صديقي"
         
+        # 5. تحميل الملفات
         self.profile = self.load_profile()
         self.memories = self.load_memories()
         
+        # 6. تحديت الألقاب
         self.user_nickname = self.profile.get("user_nickname", "Soul Code")
         self.soul_nickname = self.profile.get("soul_nickname", "صديقي")
         
-        # الذاكرة المتقدمة
+        # 7. الذاكرة المتقدمة
         self.context_stack = []
         self.user_personality = {
             "dominant_emotion": "neutral",
@@ -56,6 +60,7 @@ class SoulEngine:
             "user_facts": {}
         }
         
+        # 8. تهيئة قاعدة البيانات (بعد ما data_folder يكون معرف)
         self.init_database()
         self.load_personality_profile()
     
@@ -205,7 +210,6 @@ class SoulEngine:
     
     def init_database(self):
         try:
-            os.makedirs(self.data_folder, exist_ok=True)
             db_path = os.path.join(self.data_folder, 'learning.db')
             conn = sqlite3.connect(db_path)
             c = conn.cursor()
