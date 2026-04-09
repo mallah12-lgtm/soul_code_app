@@ -6,10 +6,8 @@ import re
 class SoulEngine:
     def __init__(self, user_email):
         self.user_email = user_email
-        # تنظيف الإيميل ليكون اسم ملف صالح
         self.user_id = re.sub(r'[@.]', '_', user_email)
         
-        # إعداد المجلدات أولاً لتجنب الـ AttributeError
         self.data_folder = "data"
         if not os.path.exists(self.data_folder):
             os.makedirs(self.data_folder)
@@ -17,13 +15,11 @@ class SoulEngine:
         self.profile_file = os.path.join(self.data_folder, f"{self.user_id}_profile.json")
         self.memory_file = os.path.join(self.data_folder, f"{self.user_id}_memories.json")
         
-        # القيم الافتراضية
         self.interests = {}
         self.memories = []
         self.user_nickname = "صديقي"
         self.soul_nickname = "Soul Code"
         
-        # تحميل البيانات إذا كانت موجودة
         self.load_data()
 
     def load_data(self):
@@ -57,14 +53,12 @@ class SoulEngine:
             json.dump(self.memories, f, ensure_ascii=False, indent=2)
 
     def learn_from_conversation(self, user_message, ai_response):
-        # إضافة للذاكرة
         self.memories.append({
             "timestamp": datetime.now().isoformat(),
             "user": user_message,
             "ai": ai_response
         })
         
-        # استخراج الكلمات المهمة للاهتمامات
         clean_text = re.sub(r'[^\w\s]', '', user_message)
         words = clean_text.split()
         for w in words:
@@ -77,10 +71,10 @@ class SoulEngine:
         return f"مرحباً بك يا {self.user_nickname}! أنا {self.soul_nickname}، كيف يمكنني مساعدتك اليوم؟ 💙"
 
     def get_weekly_insights(self):
-        return f"📊 لقد قمنا بتبادل {len(self.memories)} رسالة. أنا أتطور معك باستمرار!"
+        return f"📊 لقد قمنا بتبادل {len(self.memories)} رسالة حتى الآن!"
 
     def get_personalized_suggestion(self):
         if self.interests:
             top_interest = max(self.interests, key=self.interests.get)
-            return f"🌟 لاحظت أنك تهتم بـ '{top_interest}'. هل تود أن نتحدث أكثر في هذا المجال؟"
-        return "🌟 أخبرني عن يومك، أنا هنا لأسمعك 💙"
+            return f"🌟 لاحظت اهتمامك بـ '{top_interest}'. هل ندردش عنه؟"
+        return "🌟 أخبرني عن يومك 💙"
