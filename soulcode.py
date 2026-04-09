@@ -6,9 +6,10 @@ import re
 class SoulEngine:
     def __init__(self, user_email):
         self.user_email = user_email
-        # تنظيف الإيميل لاستخدامه كاسم ملف
+        # تنظيف الإيميل ليكون اسم ملف صالح
         self.user_id = re.sub(r'[@.]', '_', user_email)
         
+        # إعداد المجلدات أولاً لتجنب الـ AttributeError
         self.data_folder = "data"
         if not os.path.exists(self.data_folder):
             os.makedirs(self.data_folder)
@@ -16,35 +17,70 @@ class SoulEngine:
         self.profile_file = os.path.join(self.data_folder, f"{self.user_id}_profile.json")
         self.memory_file = os.path.join(self.data_folder, f"{self.user_id}_memories.json")
         
+        # القيم الافتراضية
         self.interests = {}
         self.memories = []
-        self.user_nickname = "صديقي" # اسم المستخدم
-        self.soul_nickname = "Soul Code" # اسم البرنامج
+        self.user_nickname = "صديقي"
+        self.soul_nickname = "Soul Code"
         
+        # تحميل البيانات إذا كانت موجودة
         self.load_data()
 
+    def load_data(self):
+        if os.path.exists(self.profile_file):
+            try:
+                with open(self.profile_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.interests = data.get("interests", {})
+                    self.user_nickname = data.get("user_nickname", "صديقي")
+                    self.soul_nickname = data.get("soul_nickname", "Soul Code")
+            except: pass
+
+        if os.path.exists(self.memory_file):
+            try:
+                with open(self.memory_file, 'r', encoding='utf-8') as f:
+                    self.memories = json.load(f)
+            except: pass
+
+    def save_data(self):
+        profile_data = {
+            "interests": self.interests,
+            "user_nickname": self.user_nickname,
+            "soul_nickname": self.soul_nickname,
+            "user_email": self.user_email,
+            "last_update": datetime.now().isoformat()
+        }
+        with open(self.profile_file, 'w', encoding='utf-8') as f:
+            json.dump(profile_data, f, ensure_ascii=False, indent=2)
+        
+        with open(self.memory_file, 'w', encoding='utf-8') as f:
+            json.dump(self.memories, f, ensure_ascii=False, indent=2)
+
     def learn_from_conversation(self, user_message, ai_response):
+        # إضافة للذاكرة
         self.memories.append({
             "timestamp": datetime.now().isoformat(),
             "user": user_message,
             "ai": ai_response
         })
         
-        # تحسين استخراج الكلمات: إزالة علامات الترقيم وتحويلها لقائمة
+        # استخراج الكلمات المهمة للاهتمامات
         clean_text = re.sub(r'[^\w\s]', '', user_message)
         words = clean_text.split()
-        
         for w in words:
-            if len(w) > 3: # الكلمات العربية المفيدة غالباً > 3 حروف
+            if len(w) > 3:
                 self.interests[w] = self.interests.get(w, 0) + 1
         
         self.save_data()
 
+    def get_welcome_message(self):
+        return f"مرحباً بك يا {self.user_nickname}! أنا {self.soul_nickname}، كيف يمكنني مساعدتك اليوم؟ 💙"
+
+    def get_weekly_insights(self):
+        return f"📊 لقد قمنا بتبادل {len(self.memories)} رسالة. أنا أتطور معك باستمرار!"
+
     def get_personalized_suggestion(self):
         if self.interests:
-            # جلب الأكثر تكراراً وليس أول كلمة فقط
             top_interest = max(self.interests, key=self.interests.get)
-            return f"🌟 لاحظت أننا تحدثنا كثيراً عن '{top_interest}'. هل تود التعمق في هذا الموضوع؟ 💙"
-        return "🌟 أخبرني عن اهتماماتك لأتعرف عليك أكثر 💙"
-
-    # باقي الدوال تعمل بشكل جيد...
+            return f"🌟 لاحظت أنك تهتم بـ '{top_interest}'. هل تود أن نتحدث أكثر في هذا المجال؟"
+        return "🌟 أخبرني عن يومك، أنا هنا لأسمعك 💙"
