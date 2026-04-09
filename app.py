@@ -16,17 +16,16 @@ st.markdown("""
 # دالة التواصل مع Ollama
 def get_ai_response(user_message, soul):
     try:
-        # ملاحظة: تأكد من اسم الموديل qwen:8b أو الموديل الذي حملته
         response = ollama.chat(
-            model="qwen:8b", 
+            model="qwen3:8b",  # تأكد أن الاسم مكتوب هنا بالظبط كما في التيرمينال
             messages=[
-                {"role": "system", "content": f"أنت {soul.soul_nickname}، صديق ذكي وعاطفي. اسم المستخدم هو {soul.user_nickname}. رد بالعربية بأسلوب ودود وقصير."},
+                {"role": "system", "content": f"أنت {soul.soul_nickname}، صديق ذكي وعاطفي. اسم المستخدم {soul.user_nickname}. رد بالعربية."},
                 {"role": "user", "content": user_message}
             ]
         )
         return response['message']['content']
     except Exception as e:
-        return f"خطأ في الاتصال بـ Ollama: {e}"
+        return f"حدث خطأ: {e}"
 
 # إدارة الحالة (Session State)
 if "soul" not in st.session_state: st.session_state.soul = None
