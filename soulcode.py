@@ -11,11 +11,13 @@ class SoulEngine:
         self.user_email = user_email
         self.user_id = self.sanitize_email(user_email)
         
+        # تأكد من إنشاء مجلد data أولاً
         self.data_folder = "data"
+        if not os.path.exists(self.data_folder):
+            os.makedirs(self.data_folder)
+        
         self.profile_file = f"{self.data_folder}/{self.user_id}_profile.json"
         self.memory_file = f"{self.data_folder}/{self.user_id}_memories.json"
-        
-        os.makedirs(self.data_folder, exist_ok=True)
         
         self.dimensions = {
             "openness": 0.5,
@@ -203,7 +205,9 @@ class SoulEngine:
     
     def init_database(self):
         try:
-            conn = sqlite3.connect(f'{self.data_folder}/learning.db')
+            os.makedirs(self.data_folder, exist_ok=True)
+            db_path = os.path.join(self.data_folder, 'learning.db')
+            conn = sqlite3.connect(db_path)
             c = conn.cursor()
             c.execute('''CREATE TABLE IF NOT EXISTS conversations
                          (id INTEGER PRIMARY KEY,
@@ -221,7 +225,8 @@ class SoulEngine:
     
     def learn_fact(self, fact, source="conversation"):
         try:
-            conn = sqlite3.connect(f'{self.data_folder}/learning.db')
+            db_path = os.path.join(self.data_folder, 'learning.db')
+            conn = sqlite3.connect(db_path)
             c = conn.cursor()
             c.execute('''INSERT INTO learnings (fact, timestamp) VALUES (?, ?)''',
                       (fact, datetime.now().isoformat()))
@@ -232,7 +237,8 @@ class SoulEngine:
     
     def get_all_learnings(self):
         try:
-            conn = sqlite3.connect(f'{self.data_folder}/learning.db')
+            db_path = os.path.join(self.data_folder, 'learning.db')
+            conn = sqlite3.connect(db_path)
             c = conn.cursor()
             c.execute('SELECT fact FROM learnings ORDER BY timestamp DESC')
             facts = c.fetchall()
@@ -243,16 +249,17 @@ class SoulEngine:
     
     def save_personality_profile(self):
         try:
-            with open(f"{self.data_folder}/{self.user_id}_personality.json", 'w', encoding='utf-8') as f:
+            profile_path = os.path.join(self.data_folder, f"{self.user_id}_personality.json")
+            with open(profile_path, 'w', encoding='utf-8') as f:
                 json.dump(self.user_personality, f, ensure_ascii=False, indent=2)
         except:
             pass
     
     def load_personality_profile(self):
         try:
-            personality_file = f"{self.data_folder}/{self.user_id}_personality.json"
-            if os.path.exists(personality_file):
-                with open(personality_file, 'r', encoding='utf-8') as f:
+            profile_path = os.path.join(self.data_folder, f"{self.user_id}_personality.json")
+            if os.path.exists(profile_path):
+                with open(profile_path, 'r', encoding='utf-8') as f:
                     self.user_personality = json.load(f)
         except:
             pass
