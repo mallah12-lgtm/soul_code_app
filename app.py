@@ -1,69 +1,56 @@
-import json
-import os
-from datetime import datetime
-import re
+import streamlit as st
+from soulcode import SoulEngine
+import ollama
 
-class SoulEngine:
-    def __init__(self, user_email):
-        self.user_email = user_email
-        self.user_id = re.sub(r'[@.]', '_', user_email)
-        
-        self.data_folder = "data"
-        if not os.path.exists(self.data_folder):
-            os.makedirs(self.data_folder)
-        
-        self.profile_file = os.path.join(self.data_folder, f"{self.user_id}_profile.json")
-        self.memory_file = os.path.join(self.data_folder, f"{self.user_id}_memories.json")
-        
-        self.interests = {}
-        self.memories = []
-        self.user_nickname = "صديقتي"
-        self.soul_nickname = "Soul Code"
-        
-        self.load_data()
+st.set_page_config(page_title="Soul Code", page_icon="🧠", layout="wide")
 
-    def load_data(self):
-        if os.path.exists(self.profile_file):
-            try:
-                with open(self.profile_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.interests = data.get("interests", {})
-                    self.user_nickname = data.get("user_nickname", "صديقتي")
-                    self.soul_nickname = data.get("soul_nickname", "Soul Code")
-            except: pass
+# تصميم الواجهة
+st.markdown("""
+<style>
+    .stApp { background-color: #0e1117; color: white; }
+    .user-box { background: #262730; padding: 15px; border-radius: 15px; margin: 5px; text-align: right; }
+    .ai-box { background: #1e2a2e; padding: 15px; border-radius: 15px; margin: 5px; border-left: 5px solid #a855f7; }
+</style>
+""", unsafe_allow_html=True)
 
-        if os.path.exists(self.memory_file):
-            try:
-                with open(self.memory_file, 'r', encoding='utf-8') as f:
-                    self.memories = json.load(f)
-            except: pass
+def get_ai_response(user_message, soul):
+    try:
+        # هنا المحرك الخفيف جداً
+        response = ollama.chat(
+            model="qwen2.5:0.5b", 
+            messages=[
+                {"role": "system", "content": f"أنت {soul.soul_nickname}، صديق لطيف. ردي بالعربي باختصار وحنان."},
+                {"role": "user", "content": user_message}
+            ]
+        )
+        return response['message']['content']
+    except Exception as e:
+        return "المعذرة، المحرك يحتاج لحظة للراحة.. جربي مرة أخرى."
 
-    def save_data(self):
-        profile_data = {
-            "interests": self.interests,
-            "user_nickname": self.user_nickname,
-            "soul_nickname": self.soul_nickname,
-            "user_email": self.user_email,
-            "last_update": datetime.now().isoformat()
-        }
-        with open(self.profile_file, 'w', encoding='utf-8') as f:
-            json.dump(profile_data, f, ensure_ascii=False, indent=2)
-        
-        with open(self.memory_file, 'w', encoding='utf-8') as f:
-            json.dump(self.memories, f, ensure_ascii=False, indent=2)
+if "logged_in" not in st.session_state: st.session_state.logged_in = False
+if "messages" not in st.session_state: st.session_state.messages = []
 
-    def learn_from_conversation(self, user_message, ai_response):
-        self.memories.append({
-            "timestamp": datetime.now().isoformat(),
-            "user": user_message,
-            "ai": ai_response
-        })
-        # تنظيف الكلمات وحفظ الاهتمامات
-        words = re.sub(r'[^\w\s]', '', user_message).split()
-        for w in words:
-            if len(w) > 3:
-                self.interests[w] = self.interests.get(w, 0) + 1
-        self.save_data()
+if not st.session_state.logged_in:
+    st.title("🧠 Soul Code")
+    email = st.text_input("أدخلِ بريدكِ الإلكتروني:")
+    if st.button("دخول ✨"):
+        if email:
+            st.session_state.soul = SoulEngine(email)
+            st.session_state.logged_in = True
+            st.session_state.messages.append({"role": "assistant", "content": st.session_state.soul.get_welcome_message()})
+            st.rerun()
+else:
+    for msg in st.session_state.messages:
+        style = "user-box" if msg["role"] == "user" else "ai-box"
+        st.markdown(f'<div class="{style}">{msg["content"]}</div>', unsafe_allow_html=True)
 
-    def get_welcome_message(self):
-        return f"مرحباً بكِ يا قمر! أنا {self.soul_nickname}، صديقكِ الرقمي. كيف حالكِ اليوم؟ ✨"
+    with st.form("chat_input", clear_on_submit=True):
+        u_input = st.text_input("اكتبي شيئاً..")
+        if st.form_submit_button("إرسال") and u_input:
+            st.session_state.messages.append({"role": "user", "content": u_input})
+            # إظهار علامة تحميل بسيطة
+            with st.spinner("يفكر..."):
+                ans = get_ai_response(u_input, st.session_state.soul)
+                st.session_state.soul.learn_from_conversation(u_input, ans)
+                st.session_state.messages.append({"role": "assistant", "content": ans})
+            st.rerun()
