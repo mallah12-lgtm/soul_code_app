@@ -199,46 +199,63 @@ class SoulEngine:
             return f"🌟 أنا لاحظت اهتمامك بـ '{top}'. هذا شيء رائع! استمري في التطور 💙"
         return "🌟 أنا فخور بتطورك معي يومًا بعد يوم. أخبريني عن اهتماماتك 💙"
     
+    # ========== دوال قاعدة البيانات ==========
+    
     def init_database(self):
-        conn = sqlite3.connect(f'{self.data_folder}/learning.db')
-        c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS conversations
-                     (id INTEGER PRIMARY KEY,
-                      user_message TEXT,
-                      ai_response TEXT,
-                      timestamp TEXT)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS learnings
-                     (id INTEGER PRIMARY KEY,
-                      fact TEXT,
-                      timestamp TEXT)''')
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(f'{self.data_folder}/learning.db')
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS conversations
+                         (id INTEGER PRIMARY KEY,
+                          user_message TEXT,
+                          ai_response TEXT,
+                          timestamp TEXT)''')
+            c.execute('''CREATE TABLE IF NOT EXISTS learnings
+                         (id INTEGER PRIMARY KEY,
+                          fact TEXT,
+                          timestamp TEXT)''')
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"Database error: {e}")
     
     def learn_fact(self, fact, source="conversation"):
-        conn = sqlite3.connect(f'{self.data_folder}/learning.db')
-        c = conn.cursor()
-        c.execute('''INSERT INTO learnings (fact, timestamp) VALUES (?, ?)''',
-                  (fact, datetime.now().isoformat()))
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(f'{self.data_folder}/learning.db')
+            c = conn.cursor()
+            c.execute('''INSERT INTO learnings (fact, timestamp) VALUES (?, ?)''',
+                      (fact, datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+        except:
+            pass
     
     def get_all_learnings(self):
-        conn = sqlite3.connect(f'{self.data_folder}/learning.db')
-        c = conn.cursor()
-        c.execute('SELECT fact FROM learnings ORDER BY timestamp DESC')
-        facts = c.fetchall()
-        conn.close()
-        return [f[0] for f in facts]
+        try:
+            conn = sqlite3.connect(f'{self.data_folder}/learning.db')
+            c = conn.cursor()
+            c.execute('SELECT fact FROM learnings ORDER BY timestamp DESC')
+            facts = c.fetchall()
+            conn.close()
+            return [f[0] for f in facts]
+        except:
+            return []
     
     def save_personality_profile(self):
-        with open(f"{self.data_folder}/{self.user_id}_personality.json", 'w', encoding='utf-8') as f:
-            json.dump(self.user_personality, f, ensure_ascii=False, indent=2)
+        try:
+            with open(f"{self.data_folder}/{self.user_id}_personality.json", 'w', encoding='utf-8') as f:
+                json.dump(self.user_personality, f, ensure_ascii=False, indent=2)
+        except:
+            pass
     
     def load_personality_profile(self):
-        personality_file = f"{self.data_folder}/{self.user_id}_personality.json"
-        if os.path.exists(personality_file):
-            with open(personality_file, 'r', encoding='utf-8') as f:
-                self.user_personality = json.load(f)
+        try:
+            personality_file = f"{self.data_folder}/{self.user_id}_personality.json"
+            if os.path.exists(personality_file):
+                with open(personality_file, 'r', encoding='utf-8') as f:
+                    self.user_personality = json.load(f)
+        except:
+            pass
     
     def analyze_message(self, message):
         return {"topic": "general", "sentiment": "neutral", "intent": "chatting", "facts": []}
