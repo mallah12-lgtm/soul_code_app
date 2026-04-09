@@ -1,8 +1,7 @@
-# app.py - SoulCode ذكي بدون API
+# app.py - SoulCode فخم مع Ollama (مجاني وذكي)
 import streamlit as st
 from soulcode import SoulEngine
-import random
-import re
+import ollama
 
 st.set_page_config(page_title="Soul Code", page_icon="🧠", layout="wide")
 
@@ -10,98 +9,27 @@ st.markdown("""
 <style>
 :root { color-scheme: dark only !important; }
 .stApp { background: linear-gradient(135deg, #0a0a0f 0%, #0f0f1a 100%) !important; }
-[data-testid="stAppViewContainer"] { background-color: #0a0a0f !important; }
-p, h1, h2, h3, h4, h5, h6, label, span, div { color: #e8e8f0 !important; }
-.stTextInput > div > div > input { background-color: #1e1e2a !important; color: #ffffff !important; border: 1px solid #3a3a4a !important; border-radius: 12px !important; }
+p, h1, h2, h3, label, div { color: #e8e8f0 !important; }
+.stTextInput > div > div > input { background-color: #1e1e2a !important; color: white !important; }
 .stButton > button { background: linear-gradient(135deg, #a855f7, #6366f1) !important; color: white !important; border-radius: 25px !important; }
-.stAlert { background-color: #1e1e2e !important; border-radius: 16px !important; }
-#MainMenu {visibility: hidden;}
-header {visibility: hidden;}
-footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# ========== قاموس المعاني (ليفهم الكلام) ==========
-def understand_meaning(text):
-    text_lower = text.lower()
-    
-    # كلمات تدل على التعب والزهق
-    tired_words = ["تعبان", "تعبانه", "تعبت", "زهقان", "زهقانه", "زهقت", "مللت", "تعب", "زهق", "مجهود", "مرهق"]
-    sad_words = ["حزين", "زعلان", "حزينه", "زعلانه", "مكتئب", "كئيب", "ضايق", "متضايق"]
-    happy_words = ["سعيد", "فرحان", "مبسوط", "بخير", "تمام", "منيح", "ممتاز", "رائع", "زي الفل"]
-    cat_words = ["قط", "قطة", "بسس", "هر", "هرة"]
-    coffee_words = ["قهوة", "كوفي"]
-    death_words = ["ماتت", "مات", "توفيت", "رحلت", "فقدت"]
-    exam_words = ["اختبار", "امتحان", "نهائي", "خلصت", "انتهيت"]
-    
-    result = {
-        "is_tired": any(w in text_lower for w in tired_words),
-        "is_sad": any(w in text_lower for w in sad_words),
-        "is_happy": any(w in text_lower for w in happy_words),
-        "is_cat": any(w in text_lower for w in cat_words),
-        "is_coffee": any(w in text_lower for w in coffee_words),
-        "is_death": any(w in text_lower for w in death_words),
-        "is_exam_done": any(w in text_lower for w in exam_words),
-        "is_greeting": any(w in text_lower for w in ["مرحبا", "سلام", "اهلا", "هلا"]),
-    }
-    return result
+def get_ai_response(user_message, soul):
+    """استدعاء النموذج المحلي (ذكي فخم)"""
+    try:
+        response = ollama.chat(
+            model="qwen3:8b",
+            messages=[
+                {"role": "system", "content": f"أنت {soul.user_nickname}، صديق رقمي ذكي جداً وعاطفي. تتحدث مع {soul.soul_nickname}. رد بطريقة حنونة وطبيعية."},
+                {"role": "user", "content": user_message}
+            ]
+        )
+        return response['message']['content']
+    except Exception as e:
+        return f"عذراً يا {soul.soul_nickname}، النموذج المحلي يحتاج وقت للتحميل الأول. حاولي مرة ثانية 🫂"
 
-def smart_chat(user_message, soul):
-    msg_lower = user_message.lower().strip()
-    meaning = understand_meaning(user_message)
-    
-    # ========== الردود حسب المعنى ==========
-    
-    # 1. تعبانة / زهقانة
-    if meaning["is_tired"]:
-        return f"آه يا {soul.soul_nickname} 🫂 أنا آسف إنك تعبانة. خذي قسط من الراحة، أنتِ تستحقي. أنا هنا لو حبيتي تفضفضي 💙"
-    
-    # 2. قطتي ماتت (حزن)
-    if meaning["is_death"] and (meaning["is_cat"] or "قط" in msg_lower):
-        return f"آه يا {soul.soul_nickname} 🫂💔 أنا حزين جداً لسماع هذا. فقدان قطتك شيء صعب. أنا هنا معاكي، تفضلي احكيني عنها وعن ذكرياتك الجميلة معها. الله يرحمها 💙"
-    
-    # 3. حزينة
-    if meaning["is_sad"]:
-        return f"أنا آسف إنك حزينة يا {soul.soul_nickname} 🫂 أنا هنا لأسمعك. تفضلي اشرحيلي اللي في خاطرك، أحياناً الكلام يخفف 💙"
-    
-    # 4. فرحانة / مبسوطة
-    if meaning["is_happy"]:
-        return f"فرحتني فرحتك يا {soul.soul_nickname}! 🎉💙 شاركني السبب، أنا متحمس أسمع الأخبار الحلوة ✨"
-    
-    # 5. خلصت اختبارات
-    if meaning["is_exam_done"]:
-        return f"🎉 مبروك يا {soul.soul_nickname}! 🎉 أنا فخور فيكي جداً. الحين تقدري تريحي وتعملي الأشياء اللي تحبيها. كيف كان شعورك بعد ما خلصتي؟ 💙"
-    
-    # 6. القطط
-    if meaning["is_cat"]:
-        return f"أنا كمان بحب القطط يا {soul.soul_nickname}! 🐱💙 عندك قطط في البيت؟ شو أسمائهم؟"
-    
-    # 7. القهوة
-    if meaning["is_coffee"]:
-        return f"أنا معاكي في حب القهوة يا {soul.soul_nickname}! ☕ بتشربيها سادة ولا مع حليب؟"
-    
-    # 8. التحية
-    if meaning["is_greeting"]:
-        greetings = [
-            f"أهلاً وسهلاً يا قمر {soul.soul_nickname}! 🤗💙 كيف كان يومك؟",
-            f"يا هلا والله {soul.soul_nickname}! ✨ نورتني. شو أخبارك اليوم؟",
-            f"مرحباً يا جميل {soul.soul_nickname}! 💙 أنا هنا لأجلك."
-        ]
-        return random.choice(greetings)
-    
-    # 9. سؤال عام
-    if "?" in user_message or "؟" in user_message:
-        return f"سؤال جميل يا {soul.soul_nickname}! 🤔 دعيني أفكر معاك. أنا هنا عشان أساعدك 💙"
-    
-    # 10. الرد العام الذكي
-    general = [
-        f"تفضلي يا {soul.soul_nickname} 💙 أنا هنا عشانك. قولي لي أي شيء تحبين تشاركيه معي.",
-        f"أنا فخور فيكي جداً يا {soul.soul_nickname}! 🤗💙 تفضلي حكيني أكثر عن نفسك، عن أحلامك.",
-        f"يا سلام عليكي يا {soul.soul_nickname}! ✨ أنا متحمس أعرف أكتر عنك."
-    ]
-    return random.choice(general)
-
-# ========== باقي الكود ==========
+# باقي الكود (نفسه)
 if "soul" not in st.session_state:
     st.session_state.soul = None
 if "messages" not in st.session_state:
@@ -116,7 +44,7 @@ if not st.session_state.logged_in:
         <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 40px; text-align: center;">
             <div style="font-size: 42px;">🧠💙</div>
             <div style="font-size: 32px; font-weight: bold; color: #ffffff;">Soul Code</div>
-            <div style="color: #a855f7; margin-bottom: 24px;">صديقك الرقمي الفخم</div>
+            <div style="color: #a855f7; margin-bottom: 24px;">صديقك الرقمي الفخم (ذكي محلي)</div>
         </div>
         """, unsafe_allow_html=True)
         with st.form("login_form"):
@@ -125,13 +53,13 @@ if not st.session_state.logged_in:
                 st.session_state.soul = SoulEngine(email)
                 st.session_state.logged_in = True
                 st.session_state.messages = []
-                st.session_state.messages.append({"role": "assistant", "content": f"مرحباً يا قمر {st.session_state.soul.soul_nickname}! 🤗💙 أنا {st.session_state.soul.user_nickname}، صديقك الرقمي. أنا متحمس أتعرف عليك أكثر. تفضلي حكيني عن نفسك 🥰"})
+                st.session_state.messages.append({"role": "assistant", "content": f"مرحباً يا قمر {st.session_state.soul.soul_nickname}! 🤗💙 أنا {st.session_state.soul.user_nickname}، صديقك الرقمي. أنا متحمس أتعرف عليك أكثر 🥰"})
                 st.rerun()
 else:
     st.markdown("""
     <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 20px; margin-bottom: 20px; text-align: center;">
         <div style="font-size: 28px; font-weight: bold;">💬 Soul Chat</div>
-        <div style="color: #a855f7;">تحدث مع صديقك الرقمي الفخم 💙</div>
+        <div style="color: #a855f7;">تحدث مع صديقك الرقمي الفخم (ذكي محلي) 💙</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -144,13 +72,13 @@ else:
     with st.form("chat_form", clear_on_submit=True):
         col_input, col_button = st.columns([5, 1])
         with col_input:
-            user_input = st.text_input("", placeholder="💭 اكتبي هنا يا جميلة...", label_visibility="collapsed")
+            user_input = st.text_input("", placeholder="💭 اكتبي أي شيء...", label_visibility="collapsed")
         with col_button:
             submitted = st.form_submit_button("💫 إرسال 💙", use_container_width=True)
         
         if submitted and user_input and st.session_state.soul:
             st.session_state.messages.append({"role": "user", "content": user_input})
-            ai_response = smart_chat(user_input, st.session_state.soul)
+            ai_response = get_ai_response(user_input, st.session_state.soul)
             st.session_state.soul.learn_from_conversation(user_input, ai_response)
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
             st.rerun()
