@@ -21,15 +21,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def get_ai_response(user_message, soul):
-    try:
-        # استخدام الموديل الأكثر استقراراً ومجانية
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"أنت {soul.soul_nickname}، صديق ذكي لـ {soul.user_nickname}. رد بالعربية باختصار: {user_message}"
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"💙 الروح مشغولة قليلاً، جربي ثانية! (السبب: {str(e)[:50]})"
-
+    # جربي هذه الأسماء بالترتيب، النظام سيختار الأول الذي يعمل
+    for model_name in ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro']:
+        try:
+            current_model = genai.GenerativeModel(model_name)
+            # صياغة الطلب بدون تعقيدات
+            prompt = f"أنت {soul.soul_nickname}. رد بالعربية باختصار: {user_message}"
+            response = current_model.generate_content(prompt)
+            if response and response.text:
+                return response.text
+        except Exception as e:
+            # إذا فشل هذا الموديل، جرب التالي في القائمة
+            print(f"فشل الموديل {model_name}: {e}")
+            continue
+            
+    return "💙 عذراً، يبدو أن هناك تحديثاً في سيرفرات جوجل. جربي الضغط على إرسال مرة أخرى."
 # --- منطق البرنامج ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "messages" not in st.session_state: st.session_state.messages = []
