@@ -1,4 +1,3 @@
-# app.py - SoulCode فخم مع Ollama (مجاني وذكي)
 import streamlit as st
 from soulcode import SoulEngine
 import ollama
@@ -16,20 +15,18 @@ p, h1, h2, h3, label, div { color: #e8e8f0 !important; }
 """, unsafe_allow_html=True)
 
 def get_ai_response(user_message, soul):
-    """استدعاء النموذج المحلي (ذكي فخم)"""
     try:
         response = ollama.chat(
             model="qwen3:8b",
             messages=[
-                {"role": "system", "content": f"أنت {soul.user_nickname}، صديق رقمي ذكي جداً وعاطفي. تتحدث مع {soul.soul_nickname}. رد بطريقة حنونة وطبيعية."},
+                {"role": "system", "content": f"أنت {soul.user_nickname}، صديق رقمي ذكي جداً وعاطفي. تتحدث مع {soul.soul_nickname}. رد بطريقة حنونة وطبيعية وباللغة العربية."},
                 {"role": "user", "content": user_message}
             ]
         )
         return response['message']['content']
     except Exception as e:
-        return f"عذراً يا {soul.soul_nickname}، النموذج المحلي يحتاج وقت للتحميل الأول. حاولي مرة ثانية 🫂"
+        return f"عذراً يا {soul.soul_nickname}، في مشكلة: {e}"
 
-# باقي الكود (نفسه)
 if "soul" not in st.session_state:
     st.session_state.soul = None
 if "messages" not in st.session_state:
@@ -44,7 +41,7 @@ if not st.session_state.logged_in:
         <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 40px; text-align: center;">
             <div style="font-size: 42px;">🧠💙</div>
             <div style="font-size: 32px; font-weight: bold; color: #ffffff;">Soul Code</div>
-            <div style="color: #a855f7; margin-bottom: 24px;">صديقك الرقمي الفخم (ذكي محلي)</div>
+            <div style="color: #a855f7; margin-bottom: 24px;">صديقك الرقمي الفخم</div>
         </div>
         """, unsafe_allow_html=True)
         with st.form("login_form"):
@@ -53,13 +50,13 @@ if not st.session_state.logged_in:
                 st.session_state.soul = SoulEngine(email)
                 st.session_state.logged_in = True
                 st.session_state.messages = []
-                st.session_state.messages.append({"role": "assistant", "content": f"مرحباً يا قمر {st.session_state.soul.soul_nickname}! 🤗💙 أنا {st.session_state.soul.user_nickname}، صديقك الرقمي. أنا متحمس أتعرف عليك أكثر 🥰"})
+                st.session_state.messages.append({"role": "assistant", "content": st.session_state.soul.get_welcome_message()})
                 st.rerun()
 else:
     st.markdown("""
     <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 20px; margin-bottom: 20px; text-align: center;">
         <div style="font-size: 28px; font-weight: bold;">💬 Soul Chat</div>
-        <div style="color: #a855f7;">تحدث مع صديقك الرقمي الفخم (ذكي محلي) 💙</div>
+        <div style="color: #a855f7;">تحدث مع صديقك الرقمي الفخم 💙</div>
     </div>
     """, unsafe_allow_html=True)
     
