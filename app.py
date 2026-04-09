@@ -5,45 +5,38 @@ import google.generativeai as genai
 # --- إعدادات الصفحة ---
 st.set_page_config(page_title="Soul Code AI", page_icon="🧠", layout="wide")
 
-# --- إعداد جيميناي (GEMINI CONFIG) ---
+# --- إعداد جيميناي ---
 GOOGLE_API_KEY = "AIzaSyCeT1nqiYIAU4AsItjfpXnAqCB1KPotz3s" 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# الحل لمشكلة 404: كتابة الاسم بشكل مباشر وبسيط
-model = genai.GenerativeModel('gemini-1.5-flash')
+# استخدام gemini-1.5-pro لأنه الأقوى والأكثر استجابة للمفاتيح الجديدة
+model = genai.GenerativeModel('gemini-1.5-pro')
 
-# --- CSS لتنسيق الواجهة ---
+# --- CSS التنسيق ---
 st.markdown("""
 <style>
     .stApp { background-color: #0e1117; color: white; }
-    .user-box { 
-        background: #262730; padding: 15px; border-radius: 15px; 
-        margin: 10px 0; text-align: right; border-right: 5px solid #6366f1; 
-        float: right; width: 85%; clear: both;
-    }
-    .ai-box { 
-        background: #1e2a2e; padding: 15px; border-radius: 15px; 
-        margin: 10px 0; border-left: 5px solid #a855f7; 
-        float: left; width: 85%; clear: both;
-    }
+    .user-box { background: #262730; padding: 15px; border-radius: 15px; margin: 10px 0; text-align: right; border-right: 5px solid #6366f1; float: right; width: 80%; clear: both; }
+    .ai-box { background: #1e2a2e; padding: 15px; border-radius: 15px; margin: 10px 0; border-left: 5px solid #a855f7; float: left; width: 80%; clear: both; }
     .stButton>button { width: 100%; border-radius: 20px; background: #6366f1; color: white; }
 </style>
 """, unsafe_allow_html=True)
 
 def get_ai_response(user_message, soul):
     try:
-        # صياغة الطلب بدقة
-        prompt = f"أنت {soul.soul_nickname}، صديق ذكي وحنون لـ {soul.user_nickname}. رد بالعربية بأسلوب لطيف وقصير جداً. الرسالة: {user_message}"
+        # صياغة واضحة جداً لجيميناي
+        prompt = f"أنت {soul.soul_nickname}، صديق ذكي وحنون لـ {soul.user_nickname}. رد بالعربية بأسلوب لطيف وقصير. الرسالة: {user_message}"
         response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        # إذا فشل اسم الموديل، هذا الكود سيحاول تجربة الاسم البديل فوراً
-        try:
-            alt_model = genai.GenerativeModel('gemini-pro')
-            response = alt_model.generate_content(user_message)
+        
+        # التأكد من وجود نص في الرد
+        if response and response.text:
             return response.text
-        except:
-            return f"عذراً صديقتي، يبدو أن هناك ضغط على السيرفر، جربي إرسال الرسالة مرة أخرى. 💙"
+        else:
+            return "ممم، لم أستطع صياغة رد، جربي مرة أخرى؟ 💙"
+    except Exception as e:
+        # طباعة الخطأ الحقيقي في الـ CMD عشان نعرف شو المشكلة بالظبط
+        print(f"Error details: {e}")
+        return f"حدث خطأ تقني صغير، جربي الضغط على إرسال مرة ثانية. (السبب: {str(e)[:50]}...)"
 
 # --- منطق البرنامج ---
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
@@ -51,7 +44,7 @@ if "messages" not in st.session_state: st.session_state.messages = []
 
 if not st.session_state.logged_in:
     st.title("🧠 Soul Code AI")
-    email = st.text_input("أدخلي بريدكِ الإلكتروني للبدء:")
+    email = st.text_input("أدخلي بريدكِ الإلكتروني:")
     if st.button("دخول ✨"):
         if email:
             st.session_state.soul = SoulEngine(email)
@@ -61,17 +54,15 @@ if not st.session_state.logged_in:
 else:
     st.write(f"### متصلة الآن مع Soul Code ✨")
     
-    # عرض الشات
     for msg in st.session_state.messages:
         style = "user-box" if msg["role"] == "user" else "ai-box"
         st.markdown(f'<div class="{style}">{msg["content"]}</div>', unsafe_allow_html=True)
 
-    # حقل الإدخال
     with st.form("chat_input", clear_on_submit=True):
-        u_input = st.text_input("اكتبي رسالتكِ هنا...")
+        u_input = st.text_input("اكتبي لـ Soul Code..")
         if st.form_submit_button("إرسال ✨") and u_input:
             st.session_state.messages.append({"role": "user", "content": u_input})
-            with st.spinner("Soul Code يكتب لكِ..."):
+            with st.spinner("Soul Code يكتب..."):
                 ans = get_ai_response(u_input, st.session_state.soul)
                 st.session_state.soul.learn_from_conversation(u_input, ans)
                 st.session_state.messages.append({"role": "assistant", "content": ans})
