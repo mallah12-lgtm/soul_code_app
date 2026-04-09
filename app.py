@@ -4,93 +4,68 @@ import ollama
 
 st.set_page_config(page_title="Soul Code", page_icon="🧠", layout="wide")
 
+# تصميم الواجهة (CSS)
 st.markdown("""
 <style>
-:root { color-scheme: dark only !important; }
-.stApp { background: linear-gradient(135deg, #0a0a0f 0%, #0f0f1a 100%) !important; }
-p, h1, h2, h3, label, div { color: #e8e8f0 !important; }
-.stTextInput > div > div > input { background-color: #1e1e2a !important; color: white !important; }
-.stButton > button { background: linear-gradient(135deg, #a855f7, #6366f1) !important; color: white !important; border-radius: 25px !important; }
+    .stApp { background: #0e1117; color: white; }
+    .user-msg { background: #2a2a3a; padding: 15px; border-radius: 15px; margin: 10px 0; text-align: right; }
+    .ai-msg { background: #1e2a2e; padding: 15px; border-radius: 15px; margin: 10px 0; border-left: 4px solid #a855f7; }
 </style>
 """, unsafe_allow_html=True)
 
+# دالة التواصل مع Ollama
 def get_ai_response(user_message, soul):
     try:
+        # ملاحظة: تأكد من اسم الموديل qwen:8b أو الموديل الذي حملته
         response = ollama.chat(
-            model="qwen3:8b",
+            model="qwen:8b", 
             messages=[
-                {"role": "system", "content": f"أنت {soul.user_nickname}، صديق رقمي ذكي جداً وعاطفي. تتحدث مع {soul.soul_nickname}. رد بطريقة حنونة وطبيعية وباللغة العربية."},
+                {"role": "system", "content": f"أنت {soul.soul_nickname}، صديق ذكي وعاطفي. اسم المستخدم هو {soul.user_nickname}. رد بالعربية بأسلوب ودود وقصير."},
                 {"role": "user", "content": user_message}
             ]
         )
         return response['message']['content']
     except Exception as e:
-        return f"عذراً يا {soul.soul_nickname}، في مشكلة: {e}"
+        return f"خطأ في الاتصال بـ Ollama: {e}"
 
-if "soul" not in st.session_state:
-    st.session_state.soul = None
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+# إدارة الحالة (Session State)
+if "soul" not in st.session_state: st.session_state.soul = None
+if "messages" not in st.session_state: st.session_state.messages = []
+if "logged_in" not in st.session_state: st.session_state.logged_in = False
 
+# شاشة تسجيل الدخول
 if not st.session_state.logged_in:
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 40px; text-align: center;">
-            <div style="font-size: 42px;">🧠💙</div>
-            <div style="font-size: 32px; font-weight: bold; color: #ffffff;">Soul Code</div>
-            <div style="color: #a855f7; margin-bottom: 24px;">صديقك الرقمي الفخم</div>
-        </div>
-        """, unsafe_allow_html=True)
-        with st.form("login_form"):
-            email = st.text_input("البريد الإلكتروني", placeholder="example@email.com", label_visibility="collapsed")
-            if st.form_submit_button("🚀 إبدأي الرحلة 💙", use_container_width=True) and email:
-                st.session_state.soul = SoulEngine(email)
-                st.session_state.logged_in = True
-                st.session_state.messages = []
-                st.session_state.messages.append({"role": "assistant", "content": st.session_state.soul.get_welcome_message()})
-                st.rerun()
+    st.title("🧠 Soul Code")
+    email = st.text_input("أدخل بريدك الإلكتروني للبدء:")
+    if st.button("دخول"):
+        if email:
+            st.session_state.soul = SoulEngine(email)
+            st.session_state.logged_in = True
+            st.rerun()
 else:
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 20px; margin-bottom: 20px; text-align: center;">
-        <div style="font-size: 28px; font-weight: bold;">💬 Soul Chat</div>
-        <div style="color: #a855f7;">تحدث مع صديقك الرقمي الفخم 💙</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # واجهة الشات
+    st.subheader(f"💬 مرحباً {st.session_state.soul.user_nickname}")
     
+    # عرض الرسائل
     for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            st.markdown(f'<div style="background: #2a2a3a; padding: 12px 18px; border-radius: 20px; margin: 8px 0 8px auto; max-width: 80%; text-align: right;">👤 {msg["content"]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div style="background: #1e2a2e; padding: 12px 18px; border-radius: 20px; margin: 8px auto 8px 0; max-width: 80%; border-left: 3px solid #a855f7;">🧠💙 {msg["content"]}</div>', unsafe_allow_html=True)
-    
-    with st.form("chat_form", clear_on_submit=True):
-        col_input, col_button = st.columns([5, 1])
-        with col_input:
-            user_input = st.text_input("", placeholder="💭 اكتبي أي شيء...", label_visibility="collapsed")
-        with col_button:
-            submitted = st.form_submit_button("💫 إرسال 💙", use_container_width=True)
-        
-        if submitted and user_input and st.session_state.soul:
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            ai_response = get_ai_response(user_input, st.session_state.soul)
-            st.session_state.soul.learn_from_conversation(user_input, ai_response)
-            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+        div_class = "user-msg" if msg["role"] == "user" else "ai-msg"
+        st.markdown(f'<div class="{div_class}">{msg["content"]}</div>', unsafe_allow_html=True)
+
+    # حقل الإدخال
+    with st.form("chat", clear_on_submit=True):
+        u_input = st.text_input("اكتب رسالتك هنا...")
+        if st.form_submit_button("إرسال") and u_input:
+            st.session_state.messages.append({"role": "user", "content": u_input})
+            ans = get_ai_response(u_input, st.session_state.soul)
+            st.session_state.soul.learn_from_conversation(u_input, ans)
+            st.session_state.messages.append({"role": "assistant", "content": ans})
             st.rerun()
-    
-    st.markdown("---")
-    col1, col2, col3 = st.columns(3)
+
+    # أزرار الإحصائيات
+    col1, col2 = st.columns(2)
     with col1:
-        if st.button("🧠 رؤى أسبوعية 💙", use_container_width=True):
-            st.info(st.session_state.soul.get_weekly_insights())
+        if st.button("📊 إحصائياتي"):
+            st.toast(st.session_state.soul.get_weekly_insights())
     with col2:
-        if st.button("🌟 اقتراح مخصص 🥰", use_container_width=True):
+        if st.button("🌟 اقتراح لي"):
             st.info(st.session_state.soul.get_personalized_suggestion())
-    with col3:
-        if st.button("🚪 تسجيل خروج", use_container_width=True):
-            st.session_state.logged_in = False
-            st.session_state.soul = None
-            st.session_state.messages = []
-            st.rerun()
