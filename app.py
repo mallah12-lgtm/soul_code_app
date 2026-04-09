@@ -1,76 +1,171 @@
-# app.py - SoulCode فخم مع DeepSeek API
+# app.py - SoulCode ذكي بدون API
 import streamlit as st
 from soulcode import SoulEngine
-from openai import OpenAI
+import random
+import re
 
 st.set_page_config(page_title="Soul Code", page_icon="🧠", layout="wide")
-
-# إعداد DeepSeek API
-DEEPSEEK_API_KEY = "sk-555831961d8045cebfb61dffd95ba8df"  # مفتاحك الخاص
-client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
 
 st.markdown("""
 <style>
 :root { color-scheme: dark only !important; }
 .stApp { background: linear-gradient(135deg, #0a0a0f 0%, #0f0f1a 100%) !important; }
-p, h1, h2, h3, label, div { color: #e8e8f0 !important; }
-.stTextInput > div > div > input { background-color: #1e1e2a !important; color: white !important; }
+[data-testid="stAppViewContainer"] { background-color: #0a0a0f !important; }
+p, h1, h2, h3, h4, h5, h6, label, span, div { color: #e8e8f0 !important; }
+.stTextInput > div > div > input { background-color: #1e1e2a !important; color: #ffffff !important; border: 1px solid #3a3a4a !important; border-radius: 12px !important; }
 .stButton > button { background: linear-gradient(135deg, #a855f7, #6366f1) !important; color: white !important; border-radius: 25px !important; }
+.stAlert { background-color: #1e1e2e !important; border-radius: 16px !important; }
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-def get_ai_response(user_message, soul):
-    # تحضير السياق من الذاكرة
-    context = f"""
-    أنت {soul.user_nickname}، صديق رقمي ذكي جداً وعاطفي.
-    المستخدم اسمه {soul.soul_nickname}.
-    """
+# ========== قاموس المعاني (ليفهم الكلام) ==========
+def understand_meaning(text):
+    text_lower = text.lower()
+    
+    # كلمات تدل على التعب والزهق
+    tired_words = ["تعبان", "تعبانه", "تعبت", "زهقان", "زهقانه", "زهقت", "مللت", "تعب", "زهق", "مجهود", "مرهق"]
+    sad_words = ["حزين", "زعلان", "حزينه", "زعلانه", "مكتئب", "كئيب", "ضايق", "متضايق"]
+    happy_words = ["سعيد", "فرحان", "مبسوط", "بخير", "تمام", "منيح", "ممتاز", "رائع", "زي الفل"]
+    cat_words = ["قط", "قطة", "بسس", "هر", "هرة"]
+    coffee_words = ["قهوة", "كوفي"]
+    death_words = ["ماتت", "مات", "توفيت", "رحلت", "فقدت"]
+    exam_words = ["اختبار", "امتحان", "نهائي", "خلصت", "انتهيت"]
+    
+    result = {
+        "is_tired": any(w in text_lower for w in tired_words),
+        "is_sad": any(w in text_lower for w in sad_words),
+        "is_happy": any(w in text_lower for w in happy_words),
+        "is_cat": any(w in text_lower for w in cat_words),
+        "is_coffee": any(w in text_lower for w in coffee_words),
+        "is_death": any(w in text_lower for w in death_words),
+        "is_exam_done": any(w in text_lower for w in exam_words),
+        "is_greeting": any(w in text_lower for w in ["مرحبا", "سلام", "اهلا", "هلا"]),
+    }
+    return result
 
-    # إرسال الرسالة إلى DeepSeek API
-    try:
-        response = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": context},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0.9,
-            max_tokens=300
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"عذراً يا {soul.soul_nickname}، عندي خطأ تقني: {e}"
+def smart_chat(user_message, soul):
+    msg_lower = user_message.lower().strip()
+    meaning = understand_meaning(user_message)
+    
+    # ========== الردود حسب المعنى ==========
+    
+    # 1. تعبانة / زهقانة
+    if meaning["is_tired"]:
+        return f"آه يا {soul.soul_nickname} 🫂 أنا آسف إنك تعبانة. خذي قسط من الراحة، أنتِ تستحقي. أنا هنا لو حبيتي تفضفضي 💙"
+    
+    # 2. قطتي ماتت (حزن)
+    if meaning["is_death"] and (meaning["is_cat"] or "قط" in msg_lower):
+        return f"آه يا {soul.soul_nickname} 🫂💔 أنا حزين جداً لسماع هذا. فقدان قطتك شيء صعب. أنا هنا معاكي، تفضلي احكيني عنها وعن ذكرياتك الجميلة معها. الله يرحمها 💙"
+    
+    # 3. حزينة
+    if meaning["is_sad"]:
+        return f"أنا آسف إنك حزينة يا {soul.soul_nickname} 🫂 أنا هنا لأسمعك. تفضلي اشرحيلي اللي في خاطرك، أحياناً الكلام يخفف 💙"
+    
+    # 4. فرحانة / مبسوطة
+    if meaning["is_happy"]:
+        return f"فرحتني فرحتك يا {soul.soul_nickname}! 🎉💙 شاركني السبب، أنا متحمس أسمع الأخبار الحلوة ✨"
+    
+    # 5. خلصت اختبارات
+    if meaning["is_exam_done"]:
+        return f"🎉 مبروك يا {soul.soul_nickname}! 🎉 أنا فخور فيكي جداً. الحين تقدري تريحي وتعملي الأشياء اللي تحبيها. كيف كان شعورك بعد ما خلصتي؟ 💙"
+    
+    # 6. القطط
+    if meaning["is_cat"]:
+        return f"أنا كمان بحب القطط يا {soul.soul_nickname}! 🐱💙 عندك قطط في البيت؟ شو أسمائهم؟"
+    
+    # 7. القهوة
+    if meaning["is_coffee"]:
+        return f"أنا معاكي في حب القهوة يا {soul.soul_nickname}! ☕ بتشربيها سادة ولا مع حليب؟"
+    
+    # 8. التحية
+    if meaning["is_greeting"]:
+        greetings = [
+            f"أهلاً وسهلاً يا قمر {soul.soul_nickname}! 🤗💙 كيف كان يومك؟",
+            f"يا هلا والله {soul.soul_nickname}! ✨ نورتني. شو أخبارك اليوم؟",
+            f"مرحباً يا جميل {soul.soul_nickname}! 💙 أنا هنا لأجلك."
+        ]
+        return random.choice(greetings)
+    
+    # 9. سؤال عام
+    if "?" in user_message or "؟" in user_message:
+        return f"سؤال جميل يا {soul.soul_nickname}! 🤔 دعيني أفكر معاك. أنا هنا عشان أساعدك 💙"
+    
+    # 10. الرد العام الذكي
+    general = [
+        f"تفضلي يا {soul.soul_nickname} 💙 أنا هنا عشانك. قولي لي أي شيء تحبين تشاركيه معي.",
+        f"أنا فخور فيكي جداً يا {soul.soul_nickname}! 🤗💙 تفضلي حكيني أكثر عن نفسك، عن أحلامك.",
+        f"يا سلام عليكي يا {soul.soul_nickname}! ✨ أنا متحمس أعرف أكتر عنك."
+    ]
+    return random.choice(general)
 
-# باقي كود Streamlit
+# ========== باقي الكود ==========
 if "soul" not in st.session_state:
     st.session_state.soul = None
+if "messages" not in st.session_state:
     st.session_state.messages = []
+if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.subheader("🔐 مرحباً بك في Soul Code")
-    with st.form("login_form"):
-        email = st.text_input("البريد الإلكتروني", placeholder="example@email.com")
-        if st.form_submit_button("دخول"):
-            st.session_state.soul = SoulEngine(email)
-            st.session_state.logged_in = True
-            st.session_state.messages = []
-            welcome = st.session_state.soul.get_welcome_message()
-            st.session_state.messages.append({"role": "assistant", "content": welcome})
-            st.rerun()
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 40px; text-align: center;">
+            <div style="font-size: 42px;">🧠💙</div>
+            <div style="font-size: 32px; font-weight: bold; color: #ffffff;">Soul Code</div>
+            <div style="color: #a855f7; margin-bottom: 24px;">صديقك الرقمي الفخم</div>
+        </div>
+        """, unsafe_allow_html=True)
+        with st.form("login_form"):
+            email = st.text_input("Email", placeholder="mariam@example.com", label_visibility="collapsed")
+            if st.form_submit_button("🚀 إبدأي الرحلة 💙", use_container_width=True) and email:
+                st.session_state.soul = SoulEngine(email)
+                st.session_state.logged_in = True
+                st.session_state.messages = []
+                st.session_state.messages.append({"role": "assistant", "content": f"مرحباً يا قمر {st.session_state.soul.soul_nickname}! 🤗💙 أنا {st.session_state.soul.user_nickname}، صديقك الرقمي. أنا متحمس أتعرف عليك أكثر. تفضلي حكيني عن نفسك 🥰"})
+                st.rerun()
 else:
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 20px; margin-bottom: 20px; text-align: center;">
+        <div style="font-size: 28px; font-weight: bold;">💬 Soul Chat</div>
+        <div style="color: #a855f7;">تحدث مع صديقك الرقمي الفخم 💙</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     for msg in st.session_state.messages:
         if msg["role"] == "user":
-            st.markdown(f'<div style="background:#2a2a3a;padding:10px;border-radius:20px;margin:5px 0 5px auto;max-width:70%;text-align:right">👤 {msg["content"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background: #2a2a3a; padding: 12px 18px; border-radius: 20px; margin: 8px 0 8px auto; max-width: 80%; text-align: right;">👤 {msg["content"]}</div>', unsafe_allow_html=True)
         else:
-            st.markdown(f'<div style="background:#1e2a2e;padding:10px;border-radius:20px;margin:5px auto 5px 0;max-width:70%;border-left:3px solid #a855f7">🧠 {msg["content"]}</div>', unsafe_allow_html=True)
-
+            st.markdown(f'<div style="background: #1e2a2e; padding: 12px 18px; border-radius: 20px; margin: 8px auto 8px 0; max-width: 80%; border-left: 3px solid #a855f7;">🧠💙 {msg["content"]}</div>', unsafe_allow_html=True)
+    
     with st.form("chat_form", clear_on_submit=True):
-        user_input = st.text_input("", placeholder="قولي أي شيء...", label_visibility="collapsed")
-        if st.form_submit_button("💫 إرسال"):
-            if user_input:
-                st.session_state.messages.append({"role": "user", "content": user_input})
-                ai_response = get_ai_response(user_input, st.session_state.soul)
-                st.session_state.soul.learn_from_conversation(user_input, ai_response)
-                st.session_state.messages.append({"role": "assistant", "content": ai_response})
-                st.rerun()
+        col_input, col_button = st.columns([5, 1])
+        with col_input:
+            user_input = st.text_input("", placeholder="💭 اكتبي هنا يا جميلة...", label_visibility="collapsed")
+        with col_button:
+            submitted = st.form_submit_button("💫 إرسال 💙", use_container_width=True)
+        
+        if submitted and user_input and st.session_state.soul:
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            ai_response = smart_chat(user_input, st.session_state.soul)
+            st.session_state.soul.learn_from_conversation(user_input, ai_response)
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            st.rerun()
+    
+    st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("🧠 رؤى أسبوعية 💙", use_container_width=True):
+            st.info(st.session_state.soul.get_weekly_insights())
+    with col2:
+        if st.button("🌟 اقتراح مخصص 🥰", use_container_width=True):
+            st.info(st.session_state.soul.get_personalized_suggestion())
+    with col3:
+        if st.button("🚪 تسجيل خروج", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.soul = None
+            st.session_state.messages = []
+            st.rerun()
