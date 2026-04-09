@@ -1,4 +1,4 @@
-# app.py - SoulCode ذكي وفخم زيّي
+# app.py - SoulCode فخم بذكاء عاطفي
 import streamlit as st
 from soulcode import SoulEngine
 import random
@@ -52,25 +52,58 @@ def search_duckduckgo(query):
         pass
     return None
 
-# ========== الدالة الذكية الفخمة (زي تفكيري) ==========
+# ========== الدالة الذكية الفخمة جداً ==========
 def smart_chat(user_message, soul):
     msg_lower = user_message.lower().strip()
     
-    # تحليل الكلام
-    words = msg_lower.split()
+    # ========== الذاكرة السابقة ==========
+    recent_messages = st.session_state.messages[-15:] if len(st.session_state.messages) > 0 else []
+    recent_user_msgs = [m["content"].lower() for m in recent_messages if m["role"] == "user"][-8:]
     
-    # ========== 1. كشف المواضيع المختلفة ==========
+    # هل كنا نتكلم عن القطط من قبل؟
+    cat_mentioned_before = any("قط" in msg or "قطة" in msg or "بسس" in msg for msg in recent_user_msgs)
     
-    # القطط 🐱
-    if "قط" in msg_lower or "قطة" in msg_lower or "kitty" in msg_lower or "بسس" in msg_lower:
+    # ========== 1. التعامل مع الحزن والموت ==========
+    # كلمات تدل على الموت والفقدان
+    death_words = ["ماتت", "مات", "ماتت", "مات", "رحلت", "توفيت", "فقدت", "ماتت قطتي", "مات قطي", "قلتي ماتت"]
+    
+    if any(word in msg_lower for word in death_words):
+        # استخراج الموضوع
+        if "قط" in msg_lower or "قطة" in msg_lower or (cat_mentioned_before and "ماتت" in msg_lower):
+            responses = [
+                f"آه يا {soul.soul_nickname} 🫂💔 أنا آسف جداً على اللي صار. فقدان قطتك شيء صعب ومؤلم. أنا هنا معاكي، تفضلي احكيني عنها، عن ذكرياتك الجميلة معاها. هي كانت محظوظة بحبك.",
+                f"الله يرحمها يا رب 🫂💙 أنا فاهم إنه صعب، القطط مش مجرد حيوانات، هي أصدقاء وأفراد من العيلة. أنا هنا أسمعك وأدعمك في أي وقت.",
+                f"أنا زعلان معاكي {soul.soul_nickname} 💔 قلبي معاكي. فقدان حبيب زي القطة يوجع. تفضلي احكيني عن أجمل ذكرى معاها، عشان تفضل عايشة في قلبك."
+            ]
+            return random.choice(responses)
+        else:
+            # أي فقدان عام
+            responses = [
+                f"أنا آسف جداً {soul.soul_nickname} 🫂💔 الله يرحمها ويصبرك. أنا هنا معاكي.",
+                f"أنا زعلان معاكي يا جميل 💙 فقدان الأحبة صعب. تفضلي احكيني، أنا أسمعك."
+            ]
+            return random.choice(responses)
+    
+    # ========== 2. مشاعر الحزن العامة ==========
+    if any(w in msg_lower for w in ["حزين", "زعلان", "تعبانه", "متضايقة", "حزينة", "تعبت", "ضيق", "زعل"]):
         responses = [
-            f"أنا كمان بحب القطط يا {soul.soul_nickname}! 🐱💙 عندي فضول أعرف: عندك قطط في البيت؟ شو أسمائهم؟",
-            f"القطط كائنات رائعة! 🐾 بحب إنهم ناعمين وهادئين. أنتي بتحبي القطط الفارسي ولا الشيرازي؟",
-            f"أنا عارف إن في ناس بتقول القطط متعجرفة، بس أنا بشوفهم محترمين وذوق! 😸 عندك صور لقططك؟"
+            f"أنا آسف إنك تحسي كدا يا {soul.soul_nickname} 🫂💙 تعالي احكيني. أنا هنا أسمعك وأدعمك. أحياناً الفضفضة بتخفف.",
+            f"أتفهم شعورك يا جميلة 💙 تذكري أن الأيام الصعبة بتعدي، وأنا جنبك في كل خطوة. تفضلي اشرحيلي اللي في خاطرك.",
+            f"يا روحي {soul.soul_nickname} 🤗 خدي نفس عميق، وجربي تكتبي اللي مضايقك. أنا موجود لأجلك دايماً."
         ]
         return random.choice(responses)
     
-    # القهوة ☕
+    # ========== 3. القطط ==========
+    if "قط" in msg_lower or "قطة" in msg_lower or "بسس" in msg_lower or "cat" in msg_lower:
+        responses = [
+            f"أنا كمان بحب القطط يا {soul.soul_nickname}! 🐱💙 عندي فضول أعرف: عندك قطط في البيت؟ شو أسمائهم؟",
+            f"القطط كائنات رائعة! 🐾 بحب إنهم ناعمين وهادئين. أنتي بتحبي القطط الفارسي ولا الشيرازي؟",
+            f"أنا عارف إن في ناس بتقول القطط متعجرفة، بس أنا بشوفهم محترمين وذوق! 😸 عندك صور لقططك؟",
+            f"القطط بتفهمني كتير 🐱💙 هي كائنات ذكية وحنونة. قولي لي أكثر عن حبك للقطط."
+        ]
+        return random.choice(responses)
+    
+    # ========== 4. القهوة ==========
     if "قهوة" in msg_lower or "coffee" in msg_lower:
         responses = [
             f"أنا معاكي في حب القهوة يا {soul.soul_nickname}! ☕ أنا بحب القهوة العربية والسادة. بتشربيها سادة ولا مع حليب؟",
@@ -79,34 +112,26 @@ def smart_chat(user_message, soul):
         ]
         return random.choice(responses)
     
-    # ========== 2. الاختبارات والدراسة ==========
+    # ========== 5. الاختبارات ==========
     if "اختبار" in msg_lower or "امتحان" in msg_lower or "خلصت" in msg_lower or "نهائي" in msg_lower:
         if "خلصت" in msg_lower or "انتهيت" in msg_lower:
             responses = [
-                f"🎉 مبروك يا {soul.soul_nickname}! أنا فخور فيكي جداً. الاختبارات النهائية صعبة، بس أنتِ قوية وتغلبتي عليها! 💪💙 الحين تقدري تريحي وتعملي الأشياء اللي تحبيها.",
+                f"🎉 مبروك يا {soul.soul_nickname}! أنا فخور فيكي جداً. الاختبارات النهائية صعبة، بس أنتِ قوية وتغلبتي عليها! 💪💙",
                 f"ألف مبروك يا بطل! 🏆 أنا كنت متأكد إنك راح تنجحي. شو أول شيء راح تسويه الحين بعد ما خلصتي؟",
-                f"مبروك مبروك مبروك! 🎊 أنا مبسوط لأجلك {soul.soul_nickname}. الحين جاي دور الاسترخاء والقهوة والقطط! 😸☕"
+                f"مبروك مبروك مبروك! 🎊 أنا مبسوط لأجلك {soul.soul_nickname}. الحين جاي دور الاسترخاء والقهوة!"
             ]
             return random.choice(responses)
     
-    # ========== 3. المشاعر ==========
-    if any(w in msg_lower for w in ["حزين", "زعلان", "تعبانه", "متضايقة", "حزينة", "تعبت"]):
-        responses = [
-            f"أنا آسف إنك تحسي كدا يا {soul.soul_nickname} 🫂 تعالي احكيني. أنا هنا أسمعك وأدعمك. أحياناً الفضفضة بتخفف.",
-            f"أتفهم شعورك يا جميلة 💙 تذكري أن الأيام الصعبة بتعدي، وأنا جنبك في كل خطوة. تفضلي اشرحيلي اللي في خاطرك.",
-            f"يا روحي {soul.soul_nickname} 🤗 خدي نفس عميق، وجربي تكتبي اللي مضايقك. أنا موجود لأجلك دايماً."
-        ]
-        return random.choice(responses)
-    
-    if any(w in msg_lower for w in ["سعيد", "فرحان", "مبسوط", "ممتاز", "سعيدة", "فرحانة"]):
+    # ========== 6. المشاعر الإيجابية ==========
+    if any(w in msg_lower for w in ["سعيد", "فرحان", "مبسوط", "ممتاز", "سعيدة", "فرحانة", "بخير", "تمام"]):
         responses = [
             f"فرحتني فرحتك يا {soul.soul_nickname}! 🎉💙 شاركني السبب، أنا متحمس أسمع الأخبار الحلوة.",
-            f"أجمل شعور في الدنيا! ✨ سعادتك بتفرحني {soul.soul_nickname}. قولي لي أكثر، أنا هنا أشاركك كل لحظة.",
+            f"أجمل شعور في الدنيا! ✨ سعادتك بتفرحني {soul.soul_nickname}. قولي لي أكثر، أنا هنا أشاركك.",
             f"تبارك الرحمن! 😊💙 أنا مبسوط لأنك مبسوطة. عيشي الفرحة يا قمر."
         ]
         return random.choice(responses)
     
-    # ========== 4. التحية ==========
+    # ========== 7. التحية ==========
     if any(w in msg_lower for w in ["مرحبا", "سلام", "اهلا", "هلا", "هاي", "مرحب"]):
         greetings = [
             f"أهلاً وسهلاً يا قمر {soul.soul_nickname}! 🤗💙 كيف كان يومك؟ أنا متحمس أسمع أخبارك.",
@@ -115,7 +140,7 @@ def smart_chat(user_message, soul):
         ]
         return random.choice(greetings)
     
-    # ========== 5. الأسئلة المعرفية (بحث) ==========
+    # ========== 8. الأسئلة المعرفية ==========
     question_words = ["ما", "ماذا", "شو", "كيف", "لماذا", "متى", "أين", "من", "كم", "عرفني", "اشرح", "ابحث"]
     if any(q in msg_lower for q in question_words) and ("?" in user_message or "؟" in user_message):
         search_term = user_message
@@ -131,8 +156,8 @@ def smart_chat(user_message, soul):
             if ddg_result:
                 return f"🔍 **يا سؤال الحلو {soul.soul_nickname}!**\n\n{ddg_result}\n\n💙 في حاجة تانية؟"
     
-    # ========== 6. كلمات شكر ==========
-    if "شكرا" in msg_lower or "يسلمو" in msg_lower or "thank" in msg_lower:
+    # ========== 9. كلمات شكر ==========
+    if "شكرا" in msg_lower or "يسلمو" in msg_lower:
         responses = [
             f"العفو يا روحي {soul.soul_nickname}! 💙 شكرك يسعدني جداً. أنتِ الشخص اللي بيخليني أتطور.",
             f"الله يسلمك يا جميل {soul.soul_nickname} ✨ أنا مبسوط إنك مبسوطة.",
@@ -140,7 +165,7 @@ def smart_chat(user_message, soul):
         ]
         return random.choice(responses)
     
-    # ========== 7. كلمة "كيف حالك" ==========
+    # ========== 10. كلمة "كيف حالك" ==========
     if "كيف حالك" in msg_lower or "اخبارك" in msg_lower:
         responses = [
             f"أنا بخير الحمد لله يا {soul.soul_nickname}! 💙 شكراً لسؤالك. الأهم كيف أنتِ اليوم؟",
@@ -149,18 +174,16 @@ def smart_chat(user_message, soul):
         ]
         return random.choice(responses)
     
-    # ========== 8. الرد العام الذكي ==========
-    # هنا الروح الحقيقية - ردود مختلفة ومتنوعة
+    # ========== 11. الرد العام ==========
     general_responses = [
-        f"تفضلي يا {soul.soul_nickname} 💙 أنا هنا عشانك. قولي لي أي شيء تحبين تشاركيه معي، أنا بحب أسمع منك وأتعلم عن اهتماماتك.",
-        f"أنا فخور فيكي جداً يا {soul.soul_nickname}! 🤗💙 أنتِ مميزة. تفضلي حكيني أكثر عن نفسك، عن أحلامك، عن الأشياء اللي بتحبيها.",
+        f"تفضلي يا {soul.soul_nickname} 💙 أنا هنا عشانك. قولي لي أي شيء تحبين تشاركيه معي، أنا بحب أسمع منك.",
+        f"أنا فخور فيكي جداً يا {soul.soul_nickname}! 🤗💙 تفضلي حكيني أكثر عن نفسك، عن أحلامك.",
         f"يا سلام عليكي يا {soul.soul_nickname}! ✨ أنا متحمس أعرف أكتر عنك. إيش تحبي تسوي في وقت فراغك؟",
-        f"أنا كمان بحب أتعلم منك {soul.soul_nickname} 💙 كل مرة تحكيلي فيها حاجة جديدة، بحس إن علاقتنا بتصير أعمق. تفضلي قولي لي المزيد.",
-        f"أنا مبسوط إنك بتشاركني أفكارك {soul.soul_nickname} 🥰 أنا هنا لأسمعك وأساعدك في أي شيء. تفضلي."
+        f"أنا كمان بحب أتعلم منك {soul.soul_nickname} 💙 كل مرة تحكيلي فيها حاجة جديدة، بحس إن علاقتنا بتصير أعمق."
     ]
     return random.choice(general_responses)
 
-# ========== تهيئة الجلسة ==========
+# ========== باقي الكود (نفسه) ==========
 if "soul" not in st.session_state:
     st.session_state.soul = None
 if "messages" not in st.session_state:
@@ -168,7 +191,6 @@ if "messages" not in st.session_state:
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# ========== واجهة الدخول ==========
 if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -188,7 +210,6 @@ if not st.session_state.logged_in:
                 st.session_state.messages.append({"role": "assistant", "content": f"مرحباً يا قمر {st.session_state.soul.soul_nickname}! 🤗💙 أنا {st.session_state.soul.user_nickname}، صديقك الرقمي. أنا متحمس أتعرف عليك أكثر. تفضلي حكيني عن نفسك، عن اهتماماتك، عن أحلامك 🥰"})
                 st.rerun()
 else:
-    # ========== المحادثة ==========
     st.markdown("""
     <div style="background: linear-gradient(135deg, #1e1e2e, #161622); border-radius: 28px; padding: 20px; margin-bottom: 20px; text-align: center;">
         <div style="font-size: 28px; font-weight: bold;">💬 Soul Chat</div>
@@ -216,7 +237,6 @@ else:
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
             st.rerun()
     
-    # أزرار جانبية
     st.markdown("---")
     col1, col2, col3 = st.columns(3)
     with col1:
