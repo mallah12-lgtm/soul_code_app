@@ -1,75 +1,69 @@
-import streamlit as st
-from soulcode import SoulEngine
-import ollama
+import json
+import os
+from datetime import datetime
+import re
 
-st.set_page_config(page_title="Soul Code", page_icon="🧠", layout="wide")
+class SoulEngine:
+    def __init__(self, user_email):
+        self.user_email = user_email
+        self.user_id = re.sub(r'[@.]', '_', user_email)
+        
+        self.data_folder = "data"
+        if not os.path.exists(self.data_folder):
+            os.makedirs(self.data_folder)
+        
+        self.profile_file = os.path.join(self.data_folder, f"{self.user_id}_profile.json")
+        self.memory_file = os.path.join(self.data_folder, f"{self.user_id}_memories.json")
+        
+        self.interests = {}
+        self.memories = []
+        self.user_nickname = "صديقتي"
+        self.soul_nickname = "Soul Code"
+        
+        self.load_data()
 
-# CSS التصميم الاحترافي
-st.markdown("""
-<style>
-    .stApp { background: #0a0a0f; color: #e8e8f0; }
-    .user-msg { background: #2a2a3a; padding: 15px; border-radius: 15px; margin: 10px 0; text-align: right; border-right: 4px solid #6366f1; }
-    .ai-msg { background: #1e2a2e; padding: 15px; border-radius: 15px; margin: 10px 0; border-left: 4px solid #a855f7; }
-</style>
-""", unsafe_allow_html=True)
+    def load_data(self):
+        if os.path.exists(self.profile_file):
+            try:
+                with open(self.profile_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.interests = data.get("interests", {})
+                    self.user_nickname = data.get("user_nickname", "صديقتي")
+                    self.soul_nickname = data.get("soul_nickname", "Soul Code")
+            except: pass
 
-def get_ai_response(user_message, soul):
-    try:
-        # استخدام الموديل الخفيف الذي حملته بنجاح
-        response = ollama.chat(
-            model="qwen2.5:0.5b", 
-            messages=[
-                {"role": "system", "content": f"أنت {soul.soul_nickname}، صديق ذكي وحنون. اسم المستخدم {soul.user_nickname}. رد بالعربية بأسلوب جميل."},
-                {"role": "user", "content": user_message}
-            ]
-        )
-        return response['message']['content']
-    except Exception as e:
-        return f"عذراً، حدث خطأ في المحرك: {e}"
+        if os.path.exists(self.memory_file):
+            try:
+                with open(self.memory_file, 'r', encoding='utf-8') as f:
+                    self.memories = json.load(f)
+            except: pass
 
-# إدارة الجلسة
-if "soul" not in st.session_state: st.session_state.soul = None
-if "messages" not in st.session_state: st.session_state.messages = []
-if "logged_in" not in st.session_state: st.session_state.logged_in = False
+    def save_data(self):
+        profile_data = {
+            "interests": self.interests,
+            "user_nickname": self.user_nickname,
+            "soul_nickname": self.soul_nickname,
+            "user_email": self.user_email,
+            "last_update": datetime.now().isoformat()
+        }
+        with open(self.profile_file, 'w', encoding='utf-8') as f:
+            json.dump(profile_data, f, ensure_ascii=False, indent=2)
+        
+        with open(self.memory_file, 'w', encoding='utf-8') as f:
+            json.dump(self.memories, f, ensure_ascii=False, indent=2)
 
-if not st.session_state.logged_in:
-    st.title("🧠 Soul Code")
-    email = st.text_input("أدخل بريدك الإلكتروني:")
-    if st.button("إبدأ الرحلة 🚀"):
-        if email:
-            st.session_state.soul = SoulEngine(email)
-            st.session_state.logged_in = True
-            st.session_state.messages.append({"role": "assistant", "content": st.session_state.soul.get_welcome_message()})
-            st.rerun()
-else:
-    st.subheader(f"💬 دردشة {st.session_state.soul.soul_nickname}")
-    
-    # عرض الرسائل بتنسيق جميل
-    for msg in st.session_state.messages:
-        role_class = "user-msg" if msg["role"] == "user" else "ai-msg"
-        st.markdown(f'<div class="{role_class}">{msg["content"]}</div>', unsafe_allow_html=True)
+    def learn_from_conversation(self, user_message, ai_response):
+        self.memories.append({
+            "timestamp": datetime.now().isoformat(),
+            "user": user_message,
+            "ai": ai_response
+        })
+        # تنظيف الكلمات وحفظ الاهتمامات
+        words = re.sub(r'[^\w\s]', '', user_message).split()
+        for w in words:
+            if len(w) > 3:
+                self.interests[w] = self.interests.get(w, 0) + 1
+        self.save_data()
 
-    # نموذج الإرسال
-    with st.form("chat_input", clear_on_submit=True):
-        col_in, col_btn = st.columns([5, 1])
-        with col_in:
-            u_input = st.text_input("", placeholder="اكتب هنا...", label_visibility="collapsed")
-        with col_btn:
-            if st.form_submit_button("إرسال 💫") and u_input:
-                st.session_state.messages.append({"role": "user", "content": u_input})
-                with st.spinner("Soul Code يفكر..."):
-                    ans = get_ai_response(u_input, st.session_state.soul)
-                    st.session_state.soul.learn_from_conversation(u_input, ans)
-                    st.session_state.messages.append({"role": "assistant", "content": ans})
-                st.rerun()
-
-    # الأزرار الإضافية
-    cols = st.columns(3)
-    with cols[0]:
-        if st.button("📊 إحصائياتي"): st.info(st.session_state.soul.get_weekly_insights())
-    with cols[1]:
-        if st.button("🌟 اقتراح"): st.info(st.session_state.soul.get_personalized_suggestion())
-    with cols[2]:
-        if st.button("🚪 خروج"):
-            st.session_state.logged_in = False
-            st.rerun()
+    def get_welcome_message(self):
+        return f"مرحباً بكِ يا قمر! أنا {self.soul_nickname}، صديقكِ الرقمي. كيف حالكِ اليوم؟ ✨"
